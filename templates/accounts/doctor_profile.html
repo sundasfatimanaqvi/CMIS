@@ -12,12 +12,16 @@
         body {
             font-family: Arial, sans-serif;
             background-color: #f0f8ff;
-            margin: 0;
             padding: 0;
+            /* display: flex; */
+            justify-content: center;  /* Centers horizontally */
+            align-items: center;      /* Centers vertically */
+            min-height: 100vh;        /* Ensures full height of viewport */
+            margin: 0;                /* Remove default margin */
         }
 
         /* Container Styling */
-        .container {
+        .container-doctor {
             max-width: 600px;
             margin: auto;
             background: white;
@@ -60,13 +64,16 @@
     </style>
 </head>
 <body>
+    {% include "navbar.html" %}
 
-    <div class="container">
+
+    <div class="container-doctor">
         <h2>Doctor Profile</h2>
         
         <!-- Profile Image -->
-        <img src="{{ doctor.profile_picture.url }}" class="avatar" alt="Doctor Avatar" onerror="this.src='{% static 'images/default-avatar.png' %}'">
-        
+        <!-- <img src="{{ doctor.profile_picture.url }}" class="avatar" alt="Doctor Avatar" onerror="this.src='{% static 'icons/default-avatar.png' %}'"> -->
+            <img src="{{ doctor.profile_picture.url }}" class="avatar" alt="Doctor Avatar" 
+        onerror="this.src='{% static 'icons/default-avatar.png' %}'">
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
             

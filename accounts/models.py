@@ -26,6 +26,8 @@ class Patient(models.Model):
 class Doctor(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='doctor')
     doctor_id = models.CharField(max_length=100, unique=True, blank=True)
+    profile_picture = models.ImageField(upload_to='doctor_profiles/', default='doctor_profiles/default-avatar.png', blank=True)
+
 
     def save(self, *args, **kwargs):
         if not self.doctor_id:
