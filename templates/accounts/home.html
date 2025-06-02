@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Home - Centralized Medical System</title>
+    {% load static %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <style>
+        /* General */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: #007bff;
+            padding: 15px 30px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+            font-size: 24px;
+        }
+        .nav-link {
+            color: white !important;
+            font-weight: bold;
+            margin-right: 15px;
+            font-size: 18px;
+        }
+        .btn-outline-primary {
+            color: white !important;
+            border-color: white;
+            font-weight: bold;
+        }
+        .btn-outline-primary:hover {
+            background: white;
+            color: #007bff !important;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: url("{% static 'accounts/back.jpg' %}") no-repeat center center;
+            background-size: cover;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+        .hero-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+        .hero-content h1 {
+            font-size: 48px;
+            font-weight: bold;
+        }
+        .hero-content p {
+            font-size: 20px;
+        }
+
+        /* Specialties Section */
+        .specialties-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+        .specialty-card {
+            width: 160px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .specialty-card:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+        .specialty-card img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+        
+        /* Doctors Carousel */
+        .doctors-carousel-container {
+            position: relative;
+            width: 90%;
+            margin: auto;
+            overflow: hidden;
+        }
+        .doctors-carousel {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 10px;
+        }
+        .doctor-card {
+            min-width: 250px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .doctor-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: contain; 
+            border-radius: 8px;
+            background-color: #0d6efd;
+            padding: 10px;
+        }
+
+        .doctor-card:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 123, 255, 0.8);
+            border: none;
+            color: white;
+            font-size: 24px;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .carousel-btn:hover {
+            background: rgba(0, 123, 255, 1);
+        }
+        .prev {
+            left: 0;
+        }
+        .next {
+            right: 0;
+        }
+
+        /* Available Hospitals */
+        .hospitals-section {
+            padding: 50px 0;
+            text-align: center;
+            background: #f8f9fa;
+        }
+        .hospital-icons {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+        .hospital-icons img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #007bff;
+        }
+
+        /* Footer */
+        .footer {
+            background: #007bff;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            margin-top: 30px;
+        }
+
+        /* Centered Headings */
+        .section-title {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .section-subtitle {
+            text-align: center;
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /* Uniform Image Size */
+        .specialty-card img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+        .doctor-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: contain;
+            border-radius: 8px;
+            background-color:rgb(236, 238, 241);
+            padding: 10px;
+        }
+
+        
+        /* Robot Section */
+                /* Main Container */
+        .main-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 50px;
+            margin-top: 50px;
+            padding: 0 20px;
+        }
+
+        /* Robot Section */
+        /* Robot Section */
+        .robot-section {
+            position: relative;
+            flex: 1;
+            max-width: 300px;
+            text-align: center;
+        }
+        .robot-image {
+            width: 100px;
+            height: auto;
+        }
+        .thought-bubble {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            width: 200px;
+            text-align: center;
+            overflow: hidden;
+            white-space: nowrap;
+            animation: typewriter 3s steps(40) infinite;
+        }
+        .thought-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid white;
+        }
+
+        /* Typewriter Animation */
+        @keyframes typewriter {
+            from {
+                width: 0;
+            }
+            to {
+                width: 100%;
+            }
+        }
+
+        /* Yes Button */
+        .yes-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            animation: zoomInOut 2s infinite;
+        }
+        .yes-button:hover {
+            background: #0056b3;
+        }
+
+        /* Zoom In/Out Animation */
+        @keyframes zoomInOut {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="#">Healio</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'about' %}">About Us</a>
+                    </li>
+                    <li class="nav-item"><a class="btn btn-outline-primary" href="{% url 'login' %}">Login / Signup</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1>Welcome to Healio!</h1>
+            <p>Choose well by choosing us.</p>
+        </div>
+    </div>
+
+    <!-- Specialties Section -->
+    <section>
+        <h2 class="section-title">One Stop for Seeking Care for All of Your Concerns!</h2>
+        <div class="specialties-container">
+            <div class="specialty-card">
+                <img src="{% static 'icons/cardiology.png' %}" alt="Cardiology">
+                <p>Cardiology</p>
+            </div>
+            <div class="specialty-card">
+                <img src="{% static 'icons/neurology.png' %}" alt="Neurology">
+                <p>Neurology</p>
+            </div>
+            <div class="specialty-card">
+                <img src="{% static 'icons/orthopedic.png' %}" alt="Orthopedics">
+                <p>Orthopedics</p>
+            </div>
+            <div class="specialty-card">
+                <img src="{% static 'icons/dentist.png' %}" alt="Dentist">
+                <p>Dentist</p>
+            </div>
+            <div class="specialty-card">
+                <img src="{% static 'icons/urology.png' %}" alt="Urology">
+                <p>Urology</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Doctors Section -->
+    <div class="container mt-5">
+        <h2 class="section-title">Meet Our Capable Doctors</h2>
+        <p class="section-subtitle">Login to view available doctors.</p>
+        
+        <div class="doctors-carousel-container">
+            <button class="carousel-btn prev" onclick="scrollDoctors(-1)">&#10094;</button>
+            <div class="doctors-carousel">
+                <div class="doctor-card">
+                    <img src="{% static 'doctors/doctor2.png' %}" alt="Dr. John Doe">
+                    <h5>Dr. Fatima Khan</h5>
+                    <p>Cardiology - Square Hospital</p>
+                    <p>🕒 12 pm - 8 pm</p>
+                </div>
+                <div class="doctor-card">
+                    <img src="{% static 'doctors/doctor2.png' %}" alt="Dr. Jane Smith">
+                    <h5>Dr. Sana Ali</h5>
+                    <p>Neurology - City Hospital</p>
+                    <p>🕒 10 am - 6 pm</p>
+                </div>
+                <div class="doctor-card">
+                    <img src="{% static 'doctors/doctor3.png' %}" alt="Dr. Emily Clark">
+                    <h5>Dr. Jawad</h5>
+                    <p>Orthopedic - Apollo Hospital</p>
+                    <p>🕒 9 am - 5 pm</p>
+                </div>
+                <div class="doctor-card">
+                    <img src="{% static 'doctors/doctor1.png' %}" alt="Dr. Mike Brown">
+                    <h5>Dr. Khizer</h5>
+                    <p>Dentist - Green Dental</p>
+                    <p>🕒 2 pm - 10 pm</p>
+                </div>
+                <div class="doctor-card">
+                    <img src="{% static 'doctors/doctor2.png' %}" alt="Dr. Sarah Wilson">
+                    <h5>Dr. Sarah</h5>
+                    <p>General Physician - City Health</p>
+                    <p>🕒 8 am - 2 pm</p>
+                </div>
+                <div class="doctor-card">
+                    <img src="{% static 'doctors/doctor3.png' %}" alt="Dr. Chris Evans">
+                    <h5>Dr. Ali Raza</h5>
+                    <p>Pediatrics - ChildCare Hospital</p>
+                    <p>🕒 11 am - 7 pm</p>
+                </div>
+            </div>
+            <button class="carousel-btn next" onclick="scrollDoctors(1)">&#10095;</button>
+        </div>
+    </div>
+
+    <!-- Available Hospitals -->
+<!-- Available Hospitals -->
+<div class="hospitals-section">
+    <div class="container">
+        <h2 class="section-title">Pakistans best Hospitals</h2>
+        <p class="section-subtitle">Here are a few suggestions for best hospitals from our side!.</p>
+        <div class="specialties-container">
+            <div class="specialty-card">
+                <img src="{% static 'hospitals/hospital1.png' %}" alt="Square Hospital">
+                <p>Quaid-e-Azam Hospital</p>
+            </div>
+            <div class="specialty-card">
+                <img src="{% static 'hospitals/hospital2.png' %}" alt="Ibrahim Cardiac">
+                <p>Shukat Khanam Cardiac</p>
+            </div>
+            <div class="specialty-card">
+                <img src="{% static 'hospitals/hospital3.png' %}" alt="LabAid Hospital">
+                <p>PIMS Hospital</p>
+            </div>
+            <div class="specialty-card">
+                <img src="{% static 'hospitals/hospital1.png' %}" alt="Square Hospital">
+                <p>Shifa International</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Robot Section -->
+    <div class="robot-section">
+        <div class="thought-bubble">Do you want to view hospitals around you?</div>
+        <img src="{% static 'icons/robot.png' %}" alt="Robot" class="robot-image">
+        <button class="yes-button" onclick="window.location.href='https://www.google.com/search?sca_esv=3b5c82e96f418abb&tbm=lcl&sxsrf=AHTn8zpPWKblCgePKWJzMSvZ3c7wYBt09A:1740631699190&q=hospitals+around+me&rflfq=1&num=10&sa=X&ved=2ahUKEwisp_WwhuOLAxXRVvEDHVyRHjkQjGp6BAggEAE&biw=1528&bih=738&dpr=1.25#rlfi=hd:;si:;mv:[[33.572789199999995,73.20725879999999],[33.4997295,73.08157969999999]];tbs:lrf:!1m4!1u3!2m2!3m1!1e1!1m4!1u2!2m2!2m1!1e1!2m1!1e2!2m1!1e3!3sIAE,lf:1,lf_ui:2'">Yes</button>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Contact Us: +92 12345 | © 2025 Healio. All Rights Reserved.</p>
+    </div>
+
+    <script>
+        function scrollDoctors(direction) {
+            const container = document.querySelector('.doctors-carousel');
+            const scrollAmount = 300;
+            container.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+        }
+    </script>
+
+</body>
+</html>

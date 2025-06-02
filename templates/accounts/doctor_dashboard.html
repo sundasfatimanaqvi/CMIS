@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard - Healio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: white;
+            color: black;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ddd;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+        .nav-links a {
+            margin-left: 20px;
+            color: black;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-links a:hover {
+            color: #007bff;
+        }
+        .dashboard-header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+        .sidebar {
+            width: 280px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .avatar {
+            width: 100px;
+            height: 100px;
+            background-color: #ddd;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .doctor-info {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .sidebar-btn {
+            margin-top: 15px;
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            display: block;
+            text-decoration: none;
+            font-weight: bold;
+            width: 100%; /* Ensure both buttons have the same width */
+            text-align: center; /* Center the text */
+            transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth hover animation */
+        }
+        .sidebar-btn:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+            transform: scale(1.05); /* Slightly enlarge the button on hover */
+        }
+        .dashboard-content {
+            flex: 1;
+            margin-left: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            flex: 1;
+            margin: 10px;
+        }
+        .table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+        .table, th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                margin-bottom: 20px;
+            }
+            .dashboard-content {
+                margin-left: 0;
+            }
+            .stats-container {
+                flex-direction: column;
+            }
+        }
+
+        .footer {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Healio</h1>
+        <div class="nav-links">
+            <a href="#">Home</a>
+        </div>
+    </div>
+
+    <div class="dashboard-header">Doctor Dashboard</div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="avatar"></div>
+            <div class="doctor-info">Dr. {{ request.user.username }}</div>
+            <a href="{% url 'doctor_profile' %}" class="sidebar-btn">Profile</a>
+            <button class="sidebar-btn" data-bs-toggle="modal" data-bs-target="#searchPatientModal">Search Patient ID</button>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="stats-container">
+                <div class="stat-box">
+                    <h2>Next Day Appointment</h2>
+                    <p><strong>{{ next_day_appointments|default:0 }}</strong></p>
+                </div>
+                <div class="stat-box">
+                    <h2>Today’s Patients</h2>
+                    <p><strong>{{ today_patients|default:0 }}</strong></p>
+                </div>
+                <div class="stat-box">
+                    <h2>Total Appointments</h2>
+                    <p><strong>{{ total_appointments|default:0 }}</strong></p>
+                </div>
+            </div>
+
+            <h3>Patient Appointments</h3>
+            <table class="table">
+                <tr>
+                    <th>Patient Name</th>
+                    <th>Appt Date</th>
+                    <th>Appt Time</th>
+                    <th>Status</th>
+                </tr>
+                {% if appointments %}
+                    {% for appointment in appointments %}
+                    <tr>
+                        <td>{{ appointment.patient.user.get_full_name|default:appointment.patient.user.username }}</td>
+                        <td>{{ appointment.date }}</td>
+                        <td>{{ appointment.time }}</td>
+                        <td>{{ appointment.status }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="4" style="text-align:center;">No Appointments</td></tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <!-- Search Patient Modal -->
+    <div class="modal fade" id="searchPatientModal" tabindex="-1" aria-labelledby="searchPatientModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="searchPatientModalLabel">Search Patient ID</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="patientID" class="form-control" placeholder="Enter Patient ID">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="searchPatient()">Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function searchPatient() {
+            let patientID = document.getElementById('patientID').value.trim();
+            if (patientID === "") {
+                alert("Please enter a valid Patient ID");
+                return;
+            }
+            $.ajax({
+                url: "{% url 'search_patient' %}",
+                type: "GET",
+                data: { patient_id: patientID },
+                success: function(response) {
+                    if (response.exists) {
+                        window.location.href = `/patient_management/${patientID}/`;
+                    } else {
+                        alert("Patient not found. Please enter a valid Patient ID.");
+                    }
+                },
+                error: function() {
+                    alert("An error occurred. Please try again.");
+                }
+            });
+        }
+    </script>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Contact Us: +92 12345 | © 2025 Healio. All Rights Reserved.</p>
+    </div>
+</body>
+</html>
