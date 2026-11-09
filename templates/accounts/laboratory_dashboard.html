@@ -1,10 +1,14 @@
 {% extends 'accounts/base.html' %}
+{% load static %}
 {% block title %}Laboratory{% endblock %}
 
 {% block content %}
-<div class="hl-page-head">
-    <h1 class="hl-page-title">Laboratory Dashboard</h1>
-    <p class="hl-page-sub">{{ pending_count }} test{{ pending_count|pluralize }} waiting to be completed.</p>
+<div class="hl-page-head hl-page-head-icon">
+    <img src="{% static 'graphics/lab-technician.png' %}" alt="">
+    <div>
+        <h1 class="hl-page-title">Laboratory Dashboard</h1>
+        <p class="hl-page-sub">{{ pending_count }} test{{ pending_count|pluralize }} waiting to be completed.</p>
+    </div>
 </div>
 
 <form method="get" class="hl-card mb-4" style="max-width: 640px;">

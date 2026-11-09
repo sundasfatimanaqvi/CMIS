@@ -5,6 +5,7 @@ urlpatterns = [
     # Public
     path('', views.home, name='home'),
     path('about/', views.about, name='about'),
+    path('credits/', views.credits, name='credits'),
 
     # Auth
     path('register/', views.register_view, name='register'),

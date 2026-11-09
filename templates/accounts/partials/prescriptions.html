@@ -1,4 +1,4 @@
-{% comment %}Expects `items` (Prescription queryset){% endcomment %}
+{% load static %}{% comment %}Expects `items` (Prescription queryset){% endcomment %}
 {% for p in items %}
 <div class="hl-record">
     <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
@@ -13,5 +13,5 @@
     </dl>
 </div>
 {% empty %}
-<div class="hl-empty">No prescriptions yet.</div>
+<div class="hl-empty"><img src="{% static 'graphics/medicine.png' %}" alt=""><p>No prescriptions yet.</p></div>
 {% endfor %}

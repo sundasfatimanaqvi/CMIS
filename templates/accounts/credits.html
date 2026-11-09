@@ -1,0 +1,36 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+{% block title %}Credits{% endblock %}
+
+{% block content %}
+<div class="hl-page-head">
+    <h1 class="hl-page-title">Credits</h1>
+    <p class="hl-page-sub">Illustrations and icons used on Healio.</p>
+</div>
+
+<div class="hl-card mb-4">
+    <p class="mb-0">
+        Icons are from <a href="https://www.flaticon.com" target="_blank" rel="noopener noreferrer">Flaticon</a>,
+        used under the Flaticon free licence with attribution to the authors listed below.
+        The hospital lobby illustration on the home page is part of the original project assets.
+    </p>
+</div>
+
+<div class="hl-card">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Icon</th><th>Title</th><th>Author</th><th>Source</th></tr></thead>
+            <tbody>
+            {% for file, title, author, icon_id in icons %}
+                <tr>
+                    <td><img src="{% static 'graphics/' %}{{ file }}" alt="" width="44" height="44"></td>
+                    <td>{{ title }}</td>
+                    <td>{{ author }}</td>
+                    <td><a href="https://www.flaticon.com/free-icon/icon_{{ icon_id }}" target="_blank" rel="noopener noreferrer">Flaticon</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

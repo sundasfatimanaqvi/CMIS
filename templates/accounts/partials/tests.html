@@ -1,4 +1,4 @@
-{% comment %}Expects `items` (MedicalTest queryset){% endcomment %}
+{% load static %}{% comment %}Expects `items` (MedicalTest queryset){% endcomment %}
 {% for t in items %}
 <div class="hl-record">
     <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
@@ -11,5 +11,5 @@
     </dl>
 </div>
 {% empty %}
-<div class="hl-empty">No tests prescribed yet.</div>
+<div class="hl-empty"><img src="{% static 'graphics/blood-test.png' %}" alt=""><p>No tests prescribed yet.</p></div>
 {% endfor %}

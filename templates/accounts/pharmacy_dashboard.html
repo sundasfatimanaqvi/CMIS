@@ -1,10 +1,14 @@
 {% extends 'accounts/base.html' %}
+{% load static %}
 {% block title %}Pharmacy Portal{% endblock %}
 
 {% block content %}
-<div class="hl-page-head">
-    <h1 class="hl-page-title">Pharmacy Portal</h1>
-    <p class="hl-page-sub">Look up a patient's prescriptions and mark them as fulfilled.</p>
+<div class="hl-page-head hl-page-head-icon">
+    <img src="{% static 'graphics/pharmacy.png' %}" alt="">
+    <div>
+        <h1 class="hl-page-title">Pharmacy Portal</h1>
+        <p class="hl-page-sub">Look up a patient's prescriptions and mark them as fulfilled.</p>
+    </div>
 </div>
 
 <form method="get" action="{% url 'pharmacy_lookup' %}" class="hl-card" style="max-width: 640px;">

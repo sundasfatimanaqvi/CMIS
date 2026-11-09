@@ -41,7 +41,7 @@ class BaseCase(TestCase):
 
 class PublicPagesTests(TestCase):
     def test_public_pages_render(self):
-        for name in ("home", "about", "login", "register"):
+        for name in ("home", "about", "credits", "login", "register"):
             response = self.client.get(reverse(name))
             self.assertEqual(response.status_code, 200, name)
 

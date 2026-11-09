@@ -41,6 +41,28 @@ def about(request):
     return render(request, 'accounts/about.html')
 
 
+# Flaticon icons used in static/graphics/ (free licence: attribution required).
+ICON_CREDITS = [
+    ("appointment.png", "Doctor appointment", "juicy_fish", 10476232),
+    ("hospital.png", "Hospital building", "juicy_fish", 2749678),
+    ("pharmacy.png", "Pharmacy", "Magnific", 1686939),
+    ("stethoscope.png", "Stethoscope", "Magnific", 2002576),
+    ("medicine.png", "Medicine", "Magnific", 3022827),
+    ("blood-test.png", "Blood test", "Magnific", 3127109),
+    ("lab-flask.png", "Flask", "Magnific", 3655592),
+    ("medical-record.png", "Medical record", "Magnific", 4003790),
+    ("checklist.png", "Medical records", "Magnific", 4193443),
+    ("health-shield.png", "Healthcare", "Magnific", 5024446),
+    ("doctor-male.png", "Doctor", "Andyarteicon", 4837211),
+    ("doctor-female.png", "Doctor", "Andyarteicon", 4837219),
+    ("lab-technician.png", "Lab technician", "smashingstocks", 6401477),
+]
+
+
+def credits(request):
+    return render(request, 'accounts/credits.html', {'icons': ICON_CREDITS})
+
+
 # --------------------------------------------------------------------------- #
 # Authentication
 # --------------------------------------------------------------------------- #
