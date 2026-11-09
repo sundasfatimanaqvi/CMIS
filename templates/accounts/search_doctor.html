@@ -23,8 +23,7 @@
             <img class="hl-avatar" src="{{ doctor.avatar_url }}" alt="">
             <h3>Dr. {{ doctor.display_name }}</h3>
             <span class="hl-chip mb-2">{{ doctor.specialization|default:"General Physician" }}</span>
-            <p class="text-muted mb-1"><strong>Hours:</strong> {{ doctor.availability }}</p>
-            <p class="text-muted mb-3"><strong>Fee:</strong> $100</p>
+            <p class="text-muted mb-3"><strong>Hours:</strong> {{ doctor.availability }}</p>
             {% if is_patient %}
                 <a href="{% url 'book_appointment' doctor.id %}" class="btn btn-primary mt-auto w-100">Book appointment</a>
             {% else %}
