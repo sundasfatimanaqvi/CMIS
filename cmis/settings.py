@@ -24,6 +24,8 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
@@ -44,7 +46,6 @@ pymysql.install_as_MySQLdb()
 # Application definition
 
 INSTALLED_APPS = [
-
     "django_extensions",
     'django.contrib.admin',
     'django.contrib.auth',
@@ -100,7 +101,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'cmis',  # Your database name
         'USER': 'root',  # Your MySQL username
-        'PASSWORD': 'sundas',  # Your MySQL password
+        # Override with the DB_PASSWORD environment variable on your machine
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'sundas'),
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {

@@ -60,8 +60,6 @@ def register_view(request):
     return render(request, "accounts/register.html", {"form": form})
 
 
-    return render(request, "accounts/register.html", {"form": form})
-
 
 
 def login_view(request):
@@ -88,6 +86,22 @@ def login_view(request):
         form = AuthenticationForm()
     
     return render(request, 'accounts/login.html', {'form': form})
+
+@login_required
+def dashboard_redirect_view(request):
+    user = request.user
+    
+    if Doctor.objects.filter(user=user).exists():
+        return redirect('doctor_dashboard')
+    elif Laboratory.objects.filter(user=user).exists():
+        return redirect('laboratory_dashboard')
+    elif Pharmacy.objects.filter(user=user).exists():
+        return redirect('pharmacy_dashboard')
+    elif Patient.objects.filter(user=user).exists():
+        return redirect('patient_dashboard')
+    else:
+        messages.error(request, "No role found for this user.")
+        return redirect('home')
 
 @login_required
 def doctor_dashboard(request):
