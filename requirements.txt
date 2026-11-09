@@ -1,0 +1,12 @@
+asgiref==3.7.2
+cffi==1.15.1
+cryptography==45.0.2
+Django==3.2.20
+django-extensions==3.2.3
+pip==24.0
+pycparser==2.21
+PyMySQL==1.1.1
+pytz==2025.1
+setuptools==41.2.0
+sqlparse==0.4.4
+typing-extensions==4.7.1
