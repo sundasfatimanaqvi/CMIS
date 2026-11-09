@@ -1,0 +1,97 @@
+/* Healio motion layer. Everything here is disabled for users who prefer reduced motion. */
+
+/* ---- Hero: floating orbs + heartbeat line ------------------------------------- */
+.hl-hero { position: relative; overflow: hidden; isolation: isolate; }
+.hl-hero .container { position: relative; z-index: 1; }
+.hl-orb {
+    position: absolute; border-radius: 50%; filter: blur(2px); opacity: .55; z-index: 0; pointer-events: none;
+}
+.hl-orb.o1 { width: 260px; height: 260px; top: -80px; left: -60px; background: radial-gradient(circle at 30% 30%, #7dbbff, transparent 70%); animation: hl-float 9s ease-in-out infinite; }
+.hl-orb.o2 { width: 200px; height: 200px; bottom: -60px; left: 38%; background: radial-gradient(circle at 30% 30%, #5ed6bd, transparent 70%); animation: hl-float 11s ease-in-out -3s infinite; }
+.hl-orb.o3 { width: 150px; height: 150px; top: 18%; right: 4%; background: radial-gradient(circle at 30% 30%, #9fd0ff, transparent 70%); animation: hl-float 8s ease-in-out -5s infinite; }
+[data-theme="dark"] .hl-orb { opacity: .28; }
+
+@keyframes hl-float {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(14px, -22px, 0) scale(1.06); }
+}
+
+.hl-heartbeat { display: block; width: min(420px, 100%); height: 56px; margin: 1.5rem 0 0; color: var(--hl-accent, #14a38b); }
+.hl-heartbeat path {
+    fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 420; stroke-dashoffset: 420; animation: hl-ecg 3.2s ease-in-out infinite;
+}
+@keyframes hl-ecg {
+    0% { stroke-dashoffset: 420; opacity: 1; }
+    55% { stroke-dashoffset: 0; opacity: 1; }
+    85% { stroke-dashoffset: 0; opacity: 0; }
+    100% { stroke-dashoffset: 420; opacity: 0; }
+}
+
+/* Entrance of hero copy and art */
+.hl-hero .hl-hero-grid > div > * { opacity: 0; animation: hl-rise .7s cubic-bezier(.2, .7, .2, 1) forwards; }
+.hl-hero .hl-hero-grid > div > *:nth-child(1) { animation-delay: .05s; }
+.hl-hero .hl-hero-grid > div > *:nth-child(2) { animation-delay: .18s; }
+.hl-hero .hl-hero-grid > div > *:nth-child(3) { animation-delay: .3s; }
+.hl-hero .hl-hero-grid > div > *:nth-child(4) { animation-delay: .42s; }
+.hl-hero-art { opacity: 0; animation: hl-rise .9s .2s cubic-bezier(.2, .7, .2, 1) forwards, hl-bob 7s 1.2s ease-in-out infinite; }
+@keyframes hl-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes hl-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+/* Headline accent shimmer */
+.hl-hero h1 span {
+    background: linear-gradient(90deg, var(--hl-primary), #14a38b, var(--hl-primary));
+    background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: hl-shimmer 5s linear infinite;
+}
+@keyframes hl-shimmer { to { background-position: -200% 0; } }
+
+/* ---- Scroll reveal ------------------------------------------------------------- */
+.js-motion [data-reveal] { opacity: 0; transform: translateY(26px); transition: opacity .6s ease, transform .6s cubic-bezier(.2, .7, .2, 1); transition-delay: var(--reveal-delay, 0ms); }
+.js-motion [data-reveal].is-visible { opacity: 1; transform: none; }
+
+/* ---- Hover / interaction polish ------------------------------------------------ */
+.hl-step, .hl-feature, .hl-card, .hl-stat { transition: transform .25s ease, box-shadow .25s ease; }
+.hl-step:hover img, .hl-feature:hover img { animation: hl-wiggle .6s ease; }
+.hl-step:hover, .hl-feature:hover { box-shadow: 0 14px 34px rgba(0, 86, 179, .18); }
+.hl-doctor-card:hover, .hl-stat:hover { transform: translateY(-4px); }
+@keyframes hl-wiggle { 0%, 100% { transform: rotate(0) scale(1); } 25% { transform: rotate(-6deg) scale(1.08); } 75% { transform: rotate(6deg) scale(1.08); } }
+
+.btn-primary, .btn-light { position: relative; overflow: hidden; }
+.btn-primary::after, .btn-light::after {
+    content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .45) 50%, transparent 70%);
+    transform: translateX(-120%); pointer-events: none;
+}
+.btn-primary:hover::after, .btn-light:hover::after { transform: translateX(120%); transition: transform .7s ease; }
+
+/* ---- Dashboards ---------------------------------------------------------------- */
+.hl-welcome { position: relative; overflow: hidden; background-size: 160% 160%; animation: hl-gradient 12s ease-in-out infinite; }
+.hl-welcome::before, .hl-welcome::after {
+    content: ""; position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .12); pointer-events: none;
+}
+.hl-welcome::before { width: 220px; height: 220px; right: -60px; top: -90px; animation: hl-float 10s ease-in-out infinite; }
+.hl-welcome::after { width: 120px; height: 120px; right: 22%; bottom: -50px; animation: hl-float 8s ease-in-out -2s infinite; }
+.hl-welcome > * { position: relative; z-index: 1; }
+.hl-welcome > img { animation: hl-bob 5s ease-in-out infinite; }
+@keyframes hl-gradient { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+.hl-chart-bar { animation: hl-grow .9s cubic-bezier(.2, .7, .2, 1) forwards; animation-delay: calc(var(--i, 0) * 70ms); }
+@keyframes hl-grow { from { transform: scaleY(0); transform-origin: bottom; } to { transform: scaleY(1); transform-origin: bottom; } }
+
+.hl-timeline li { animation: hl-rise .5s ease both; }
+.hl-timeline li:nth-child(2) { animation-delay: .1s; }
+.hl-timeline li:nth-child(3) { animation-delay: .2s; }
+.hl-timeline li:nth-child(4) { animation-delay: .3s; }
+
+/* Chat launcher pulse (only while closed) */
+.hl-chat-toggle:not(.is-open) { animation: hl-pulse 2.6s ease-out infinite; }
+@keyframes hl-pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, .5); } 70%, 100% { box-shadow: 0 0 0 16px rgba(0, 123, 255, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .hl-orb, .hl-heartbeat path, .hl-hero-art, .hl-hero h1 span, .hl-welcome, .hl-welcome::before, .hl-welcome::after,
+    .hl-welcome > img, .hl-timeline li, .hl-chat-toggle, .hl-step:hover img, .hl-feature:hover img { animation: none !important; }
+    .hl-hero .hl-hero-grid > div > *, .hl-hero-art { opacity: 1 !important; }
+    .hl-heartbeat path { stroke-dashoffset: 0; }
+    .hl-chart-bar { animation: none; }
+    .js-motion [data-reveal] { opacity: 1; transform: none; transition: none; }
+}

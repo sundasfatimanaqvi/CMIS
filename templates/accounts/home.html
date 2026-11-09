@@ -4,6 +4,9 @@
 
 {% block fullwidth %}
 <section class="hl-hero">
+    <span class="hl-orb o1" aria-hidden="true"></span>
+    <span class="hl-orb o2" aria-hidden="true"></span>
+    <span class="hl-orb o3" aria-hidden="true"></span>
     <div class="container">
         <div class="hl-hero-grid">
             <div>
@@ -15,6 +18,9 @@
                     <a class="btn btn-primary btn-lg me-2" href="{% url 'register' %}">Get started</a>
                     <a class="btn btn-outline-primary btn-lg" href="{% url 'login' %}">Login</a>
                 {% endif %}
+                <svg class="hl-heartbeat" viewBox="0 0 420 56" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M0 30 H110 L130 30 L145 8 L165 50 L182 18 L192 30 H420"/>
+                </svg>
             </div>
             <figure class="hl-hero-art">
                 <img src="{% static 'accounts/back.jpg' %}" alt="Patients, a doctor and a receptionist in a hospital lobby">

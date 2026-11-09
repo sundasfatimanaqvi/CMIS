@@ -47,7 +47,7 @@
                         {% for d in week %}
                         <div class="hl-chart-col{% if d.is_today %} is-today{% endif %}">
                             <span class="hl-chart-value">{{ d.count }}</span>
-                            <div class="hl-chart-track"><div class="hl-chart-bar" style="height: {{ d.pct }}%;"></div></div>
+                            <div class="hl-chart-track"><div class="hl-chart-bar" style="height: {{ d.pct }}%; --i: {{ forloop.counter0 }};"></div></div>
                             <span class="hl-chart-label">{{ d.label }}<small>{{ d.day }}</small></span>
                         </div>
                         {% endfor %}
