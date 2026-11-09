@@ -57,6 +57,28 @@ NEARBY_REPLY = (
     "You can also book a doctor through **Find a Doctor** in Healio."
 )
 
+HEALTH_TERMS = (
+    "pain", "ache", "hurt", "sore", "fever", "temperature", "cough", "cold", "flu", "sick", "ill", "unwell",
+    "nausea", "vomit", "diarrh", "dizz", "tired", "fatigue", "rash", "itch", "swell", "bleed", "wound", "burn",
+    "injur", "fracture", "sprain", "allerg", "asthma", "breath", "chest", "heart", "blood", "pressure", "sugar",
+    "diabet", "infection", "stomach", "throat", "headache", "migraine", "back", "knee", "skin", "eye", "ear",
+    "tooth", "dental", "pregnan", "symptom", "medicine", "medication", "tablet", "dose", "pill", "vaccine",
+    "diet", "sleep", "insomnia", "anxiety", "stress", "depress", "health", "doctor", "pharmac", "hospital",
+    "clinic", "lab test", "weak", "numb", "cramp", "constipat", "acid", "urine", "cholesterol",
+)
+
+GREETINGS = ("hi", "hello", "hey", "salam", "assalam", "good morning", "good evening", "thanks", "thank you")
+
+OUT_OF_SCOPE_REPLY = (
+    "I can only help with **health questions**, so I can't answer that one.\n\n"
+    "You can ask me things like:\n"
+    "• \"I have a headache and a fever\"\n"
+    "• \"When should I see a doctor for a cough?\"\n"
+    "• \"What helps with an upset stomach?\""
+)
+
+GREETING_REPLY = "Hello! I'm your health assistant. Tell me your symptoms or a health question and I'll do my best to help."
+
 URGENT_MARKERS = ("see a doctor soon", "visit urgent care", "contact your doctor today", "seek medical care promptly")
 EMERGENCY_MARKERS = ("call 1122 immediately", "medical emergency", "emergency room immediately")
 
@@ -89,8 +111,22 @@ def urgency_from_text(text):
     return "routine"
 
 
+def is_health_related(message):
+    text = message.lower()
+    return any(term in text for term in HEALTH_TERMS)
+
+
+def is_greeting(message):
+    cleaned = message.lower().strip(" !.,?")
+    return cleaned in GREETINGS or any(cleaned.startswith(g + " ") for g in GREETINGS) and len(cleaned.split()) <= 3
+
+
 def fallback_reply(message):
     text = message.lower()
+    if is_greeting(message):
+        return GREETING_REPLY
+    if not is_health_related(message):
+        return OUT_OF_SCOPE_REPLY
     if any(w in text for w in ("headache", "head pain", "migraine")):
         body = ("**Headache**\n• Rest in a quiet, dark room\n• Apply a cool compress to your forehead\n"
                 "• Drink water\n\n**You should see a doctor soon** if it is sudden and severe, comes with "
@@ -146,6 +182,9 @@ def get_reply(message):
     lowered = message.lower()
     if any(term in lowered for term in NEARBY_TERMS):
         return NEARBY_REPLY, "routine", "builtin"
+
+    if is_greeting(message):
+        return GREETING_REPLY, "routine", "builtin"
 
     try:
         text = _call_openai(message)

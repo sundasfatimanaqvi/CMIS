@@ -437,3 +437,27 @@ class ChatbotTests(BaseCase):
         self.assertContains(self.client.get(reverse("patient_dashboard")), 'id="chatWindow"')
         self.login(self.doctor_user)
         self.assertNotContains(self.client.get(reverse("doctor_dashboard")), 'id="chatWindow"')
+
+
+class ChatbotScopeTests(BaseCase):
+    def setUp(self):
+        super().setUp()
+        from django.core.cache import cache
+        cache.clear()
+        self.login(self.patient_user)
+
+    def ask(self, message):
+        with self.settings(OPENAI_API_KEY=""):
+            return self.post_json(reverse("chatbot_conversation"), {"message": message}).json()
+
+    def test_off_topic_question_is_declined_not_answered_with_health_tips(self):
+        data = self.ask("how to build a repo on git")
+        self.assertIn("only help with", data["response"])
+        self.assertNotIn("Rest and stay hydrated", data["response"])
+
+    def test_greeting(self):
+        self.assertIn("Hello", self.ask("hi")["response"])
+
+    def test_health_question_still_gets_guidance(self):
+        self.assertIn("Stomach", self.ask("my stomach hurts")["response"])
+        self.assertIn("General guidance", self.ask("my elbow hurts")["response"])
