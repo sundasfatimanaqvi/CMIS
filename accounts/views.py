@@ -20,6 +20,7 @@ from .decorators import (
     doctor_required, get_role, laboratory_required, patient_required,
     pharmacy_required, role_required,
 )
+from . import chatbot
 from .forms import RegistrationForm
 from .models import (
     Appointment, Doctor, Laboratory, MedicalHistory, MedicalTest, Patient,
@@ -568,3 +569,35 @@ def toggle_test_status(request, test_id):
     test.status = "Pending" if test.status == "Completed" else "Completed"
     test.save(update_fields=['status'])
     return JsonResponse({"success": True, "new_status": test.status})
+
+
+# --------------------------------------------------------------------------- #
+# Patient AI assistant
+# --------------------------------------------------------------------------- #
+@role_required('patient', api=True)
+@require_POST
+def chatbot_conversation(request):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"success": False, "response": "Invalid request."}, status=400)
+
+    message = _clean_text(data, "message", chatbot.MAX_MESSAGE_LENGTH)
+    if not message:
+        return JsonResponse({"success": False, "response": "Please describe your symptoms or health question."}, status=400)
+
+    try:
+        chatbot.check_rate_limit(request.user.id)
+    except chatbot.RateLimited:
+        return JsonResponse({
+            "success": False,
+            "response": "You are sending messages very quickly. Please wait a few minutes and try again.",
+        }, status=429)
+
+    text, urgency, source = chatbot.get_reply(message)
+    return JsonResponse({
+        "success": True,
+        "response": text,
+        "urgency": urgency,
+        "source": source,
+        "timestamp": timezone.now().isoformat(),
+    })

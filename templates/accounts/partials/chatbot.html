@@ -1,0 +1,36 @@
+{% load static %}
+<button type="button" class="hl-chat-toggle" id="chatToggle" aria-label="Open AI health assistant" aria-expanded="false" aria-controls="chatWindow">
+    <img src="{% static 'icons/robot.png' %}" alt="">
+    <span class="hl-chat-toggle-label">Ask AI</span>
+</button>
+
+<section class="hl-chat-window" id="chatWindow" role="dialog" aria-label="AI health assistant" hidden>
+    <header class="hl-chat-header">
+        <img src="{% static 'icons/robot.png' %}" alt="">
+        <div>
+            <strong>Healio AI assistant</strong>
+            <span>General health guidance</span>
+        </div>
+        <button type="button" class="hl-chat-close" id="chatClose" aria-label="Close chat">&times;</button>
+    </header>
+
+    <div class="hl-chat-messages" id="chatMessages" aria-live="polite"></div>
+
+    <div class="hl-chat-chips" id="chatChips">
+        <button type="button" data-prompt="I have a headache">Headache</button>
+        <button type="button" data-prompt="I have a fever">Fever</button>
+        <button type="button" data-prompt="I have a sore throat and cough">Sore throat</button>
+        <button type="button" data-prompt="I have stomach pain">Stomach pain</button>
+        <button type="button" data-prompt="Find hospitals near me">Hospitals near me</button>
+    </div>
+
+    <form class="hl-chat-form" id="chatForm" autocomplete="off">
+        <label for="chatInput" class="visually-hidden">Describe your symptoms</label>
+        <input type="text" id="chatInput" maxlength="1000" placeholder="Describe your symptoms..." required>
+        <button type="submit" class="btn btn-primary" id="chatSend">Send</button>
+    </form>
+    <p class="hl-chat-note">Not a diagnosis. In an emergency call <strong>1122</strong>.</p>
+</section>
+
+<script src="{% static 'js/chatbot.js' %}?v={{ ASSET_VERSION }}"></script>
+<script>Healio.chatbot.init({ url: "{% url 'chatbot_conversation' %}" });</script>

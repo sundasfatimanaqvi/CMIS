@@ -37,6 +37,13 @@ Doctors set working hours, a specialization and unavailable dates on their profi
 Patients can book 30-minute slots up to 14 days ahead; already-booked and past slots are hidden,
 and double booking is prevented.
 
+## AI health assistant (patients)
+
+Patients get an "Ask AI" chat button on every page. Set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`)
+in `.env` to answer with OpenAI; without a key it uses built-in guidance. Severe-symptom messages
+(e.g. chest pain) are answered locally with an emergency notice, no patient identifiers are sent to
+OpenAI, and each user is limited to 30 messages per 10 minutes.
+
 ## Tests
 
 ```bash

@@ -168,6 +168,10 @@ STATIC_URL = '/static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
+# AI health assistant (optional: without a key the chatbot uses built-in guidance)
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
+
 # Auth / messages
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'

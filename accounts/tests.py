@@ -362,3 +362,78 @@ class PharmacyAndLabTests(BaseCase):
         self.assertEqual(self.client.post(url).json()["new_status"], "Completed")
         self.login(self.doctor_user)
         self.assertEqual(self.client.post(url).status_code, 403)
+
+
+class ChatbotTests(BaseCase):
+    URL = "chatbot_conversation"
+
+    def setUp(self):
+        super().setUp()
+        from django.core.cache import cache
+        cache.clear()
+        self.login(self.patient_user)
+
+    def ask(self, message):
+        return self.post_json(reverse(self.URL), {"message": message})
+
+    def test_only_patients_can_use_it(self):
+        self.login(self.doctor_user)
+        self.assertEqual(self.ask("headache").status_code, 403)
+        self.client.logout()
+        self.assertEqual(self.ask("headache").status_code, 401)
+
+    def test_csrf_is_enforced(self):
+        from django.test import Client
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.patient_user)
+        response = client.post(reverse(self.URL), data=json.dumps({"message": "hi"}), content_type="application/json")
+        self.assertEqual(response.status_code, 403)
+
+    def test_rejects_empty_and_get(self):
+        self.assertEqual(self.ask("   ").status_code, 400)
+        self.assertEqual(self.client.post(reverse(self.URL), data="nope", content_type="application/json").status_code, 400)
+        self.assertEqual(self.client.get(reverse(self.URL)).status_code, 405)
+
+    def test_without_api_key_uses_builtin_guidance(self):
+        with self.settings(OPENAI_API_KEY=""):
+            data = self.ask("I have a headache").json()
+        self.assertTrue(data["success"])
+        self.assertEqual(data["source"], "builtin")
+        self.assertIn("Headache", data["response"])
+
+    def test_ai_reply_is_used_and_urgency_detected(self):
+        from unittest import mock
+        with mock.patch("accounts.chatbot._call_openai", return_value="Rest well. You should see a doctor soon.") as call:
+            data = self.ask("my knee hurts").json()
+        call.assert_called_once_with("my knee hurts")  # nothing else (no patient id) is sent
+        self.assertEqual((data["source"], data["urgency"]), ("ai", "urgent"))
+
+    def test_api_failure_falls_back(self):
+        from unittest import mock
+        with mock.patch("accounts.chatbot._call_openai", side_effect=OSError("down")):
+            data = self.ask("I have a fever").json()
+        self.assertTrue(data["success"])
+        self.assertEqual(data["source"], "builtin")
+
+    def test_emergency_is_answered_locally_without_calling_the_api(self):
+        from unittest import mock
+        with mock.patch("accounts.chatbot._call_openai", side_effect=AssertionError("must not be called")):
+            data = self.ask("I have severe chest pain").json()
+        self.assertEqual(data["urgency"], "emergency")
+        self.assertIn("1122", data["response"])
+
+    def test_nearby_request_returns_map_links(self):
+        data = self.ask("find a pharmacy near me").json()
+        self.assertIn("google.com/maps", data["response"])
+
+    def test_rate_limit(self):
+        from unittest import mock
+        with mock.patch("accounts.chatbot.RATE_LIMIT_MESSAGES", 2), self.settings(OPENAI_API_KEY=""):
+            self.assertEqual(self.ask("headache").status_code, 200)
+            self.assertEqual(self.ask("fever").status_code, 200)
+            self.assertEqual(self.ask("cough").status_code, 429)
+
+    def test_widget_only_rendered_for_patients(self):
+        self.assertContains(self.client.get(reverse("patient_dashboard")), 'id="chatWindow"')
+        self.login(self.doctor_user)
+        self.assertNotContains(self.client.get(reverse("doctor_dashboard")), 'id="chatWindow"')

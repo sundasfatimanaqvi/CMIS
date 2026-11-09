@@ -18,6 +18,7 @@ urlpatterns = [
     path('search-doctor/', views.search_doctor, name='search_doctor'),
     path('doctors/<int:doctor_id>/book/', views.book_appointment, name='book_appointment'),
     path('doctors/<int:doctor_id>/slots/', views.doctor_slots, name='doctor_slots'),
+    path('api/chatbot-conversation/', views.chatbot_conversation, name='chatbot_conversation'),
     path('appointments/<int:appointment_id>/update/', views.update_appointment, name='update_appointment'),
 
     # Doctor
