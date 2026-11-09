@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Healio{% endblock %} - Healio</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{% static 'css/healio.css' %}" rel="stylesheet">
+    <link href="{% static 'css/healio.css' %}?v={{ ASSET_VERSION }}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="hl-body">
@@ -27,7 +27,7 @@
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="hl-toasts" aria-live="polite" aria-atomic="true"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/healio.js' %}"></script>
+    <script src="{% static 'js/healio.js' %}?v={{ ASSET_VERSION }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

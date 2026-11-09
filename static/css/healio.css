@@ -88,26 +88,24 @@ a:hover { color: var(--hl-primary-dark); }
 }
 
 /* Hero (home) ---------------------------------------------------------------- */
-/* back.jpg is a 3:2 illustration: "contain" shows all of it (no cropped heads/feet);
-   the two colours behind it match the picture's left/right edges. */
+/* back.jpg is a 3:2 illustration, so it is shown whole (an <img>) next to the text
+   instead of being cropped as a background. */
 .hl-hero {
-    position: relative;
-    height: calc(100vh - var(--hl-nav-h));
-    min-height: 420px;
-    display: flex; align-items: center; justify-content: center;
-    text-align: center; color: #fff;
-    background: url("../accounts/back.jpg") no-repeat center center / contain,
-                linear-gradient(90deg, #d6dbea 50%, #e9eefa 50%);
+    background: linear-gradient(135deg, #e8f2ff 0%, #f6faff 55%, #e6f7f3 100%);
+    padding: 48px 0;
+    min-height: calc(100vh - var(--hl-nav-h));
+    display: flex; align-items: center;
 }
-.hl-hero::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); }
-.hl-hero > div { position: relative; z-index: 2; padding: 2rem 1rem; max-width: 720px; }
-.hl-hero h1 { font-size: clamp(1.75rem, 5vw, 3rem); font-weight: bold; }
-.hl-hero p { font-size: clamp(1rem, 2.5vw, 1.25rem); }
-@media (max-width: 767.98px) {
-    /* On phones keep the full 3:2 picture instead of tiny bars above and below it */
-    .hl-hero { height: auto; min-height: 0; aspect-ratio: 3 / 2; }
-    .hl-hero > div { padding: .5rem; }
-    .hl-hero .btn { padding: .25rem .6rem; font-size: .85rem; }
+.hl-hero .hl-hero-grid { display: grid; grid-template-columns: 5fr 7fr; gap: 48px; align-items: center; }
+.hl-hero h1 { font-size: clamp(2rem, 4.5vw, 3.4rem); font-weight: 800; line-height: 1.1; color: var(--hl-text); }
+.hl-hero h1 span { color: var(--hl-primary); }
+.hl-hero .lead { color: var(--hl-muted); font-size: clamp(1.05rem, 2vw, 1.3rem); margin: 1rem 0 1.75rem; }
+.hl-hero-art { margin: 0; }
+.hl-hero-art img { width: 100%; height: auto; display: block; border-radius: 18px; box-shadow: 0 18px 50px rgba(16, 42, 67, .18); }
+@media (max-width: 991.98px) {
+    .hl-hero { min-height: 0; padding: 32px 0; }
+    .hl-hero .hl-hero-grid { grid-template-columns: 1fr; gap: 28px; text-align: center; }
+    .hl-hero-art { order: -1; }
 }
 
 .hl-feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
@@ -119,7 +117,7 @@ a:hover { color: var(--hl-primary-dark); }
 .hl-feature:hover { transform: translateY(-3px); }
 .hl-feature img { width: 64px; height: 64px; object-fit: contain; margin-bottom: .5rem; }
 .hl-feature p { margin: 0; font-weight: 600; }
-.hl-feature.hospital img { width: 100%; height: 120px; object-fit: cover; border-radius: 10px; }
+.hl-feature.hospital img { width: 100%; height: 130px; object-fit: contain; }
 
 /* Doctor cards ---------------------------------------------------------------- */
 .hl-doctor-card { text-align: center; height: 100%; display: flex; flex-direction: column; align-items: center; }
@@ -127,7 +125,8 @@ a:hover { color: var(--hl-primary-dark); }
 .hl-doctor-card h3, .hl-doctor-card h5 { font-size: 1.1rem; font-weight: 700; margin-bottom: .15rem; }
 .hl-chip { display: inline-block; padding: .15rem .65rem; border-radius: 999px; background: var(--hl-primary-soft); color: var(--hl-primary-dark); font-size: .8rem; font-weight: 600; }
 
-.hl-carousel { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: .5rem .25rem 1rem; scrollbar-width: thin; }
+.hl-carousel { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: .5rem .25rem 1rem; scrollbar-width: none; }
+.hl-carousel::-webkit-scrollbar { display: none; }
 .hl-carousel > * { flex: 0 0 240px; scroll-snap-align: start; }
 
 /* Robot / CTA ----------------------------------------------------------------- */
@@ -139,23 +138,23 @@ a:hover { color: var(--hl-primary-dark); }
 .hl-auth {
     background: #f0f8ff;
     min-height: calc(100vh - var(--hl-nav-h) - 70px);
-    display: flex; justify-content: center; align-items: center; gap: 40px;
+    display: flex; justify-content: center; align-items: center; gap: 48px;
     padding: 40px 20px;
 }
 .hl-auth-side {
-    flex: 1; max-width: 400px; min-height: 400px; align-self: stretch;
+    flex: 0 1 400px; width: 400px; max-width: 400px; aspect-ratio: 1 / 1;
     background-repeat: no-repeat; background-position: center center; background-size: contain;
 }
-.hl-auth-form { flex: 1; display: flex; justify-content: flex-start; }
+.hl-auth-form { flex: 0 1 440px; width: 440px; max-width: 100%; display: flex; }
 .hl-auth-box {
-    width: 100%; max-width: 440px; background: #fff; padding: 40px;
-    border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, .1);
+    width: 100%; background: #fff; padding: 36px;
+    border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, .1);
 }
 .hl-auth-box h1 { font-size: 1.75rem; font-weight: 700; }
-@media (max-width: 767.98px) {
+@media (max-width: 899.98px) {
     .hl-auth { flex-direction: column; gap: 16px; padding: 24px 16px; }
-    .hl-auth-side { min-height: 200px; max-width: 260px; align-self: center; width: 100%; flex: none; }
-    .hl-auth-form { justify-content: center; width: 100%; }
+    .hl-auth-side { flex: none; width: 100%; max-width: 240px; }
+    .hl-auth-form { flex: none; width: 100%; max-width: 440px; }
     .hl-auth-box { padding: 24px; }
 }
 
@@ -163,9 +162,10 @@ a:hover { color: var(--hl-primary-dark); }
 .hl-about-bg {
     min-height: calc(100vh - var(--hl-nav-h));
     padding: 40px 0;
-    background: url("../accounts/back.jpg") no-repeat center center fixed;
-    background-size: cover;
+    display: flex; align-items: flex-end;
+    background: url("../accounts/back.jpg") no-repeat center 20% / cover;
 }
+.hl-about-bg > .container { width: 100%; }
 .hl-about-card { background: rgba(255, 255, 255, .85); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, .2); padding: 30px; }
 
 /* Forms ---------------------------------------------------------------------------- */

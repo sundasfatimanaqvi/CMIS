@@ -52,7 +52,8 @@ class Doctor(models.Model):
         name = self.profile_picture.name if self.profile_picture else ''
         if name and 'default-avatar' not in name:
             return self.profile_picture.url
-        return static('icons/default-avatar.png')
+        # Friendly illustrated fallback (cycles through the bundled doctor pictures)
+        return static(f"doctors/doctor{(self.pk or 0) % 3 + 1}.png")
 
     def unavailable_date_set(self):
         days = set()
