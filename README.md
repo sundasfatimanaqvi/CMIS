@@ -42,7 +42,8 @@ and double booking is prevented.
 Patients get an "Ask AI" chat button on every page. Set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`)
 in `.env` to answer with OpenAI; without a key it uses built-in guidance. Severe-symptom messages
 (e.g. chest pain) are answered locally with an emergency notice, no patient identifiers are sent to
-OpenAI, and each user is limited to 30 messages per 10 minutes.
+OpenAI, and the assistant is restricted to health topics only (off-topic or rule-changing requests are
+declined locally and by the model's instructions). Each user is limited to 30 messages per 10 minutes.
 
 ## Tests
 
