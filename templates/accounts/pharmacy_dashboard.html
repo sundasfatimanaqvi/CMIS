@@ -11,6 +11,11 @@
     </div>
 </div>
 
+<div class="hl-stats" style="max-width: 640px;">
+    <div class="hl-stat"><img src="{% static 'icons/medicine.png' %}" alt=""><div><div class="label">Waiting</div><div class="value">{{ pending_prescriptions }}</div></div></div>
+    <div class="hl-stat"><img src="{% static 'icons/healthcare.png' %}" alt=""><div><div class="label">Fulfilled</div><div class="value">{{ fulfilled_prescriptions }}</div></div></div>
+</div>
+
 <form method="get" action="{% url 'pharmacy_lookup' %}" class="hl-card" style="max-width: 640px;">
     <label for="patient_id" class="form-label">Patient ID</label>
     <div class="input-group">

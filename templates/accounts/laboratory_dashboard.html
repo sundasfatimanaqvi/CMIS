@@ -11,6 +11,11 @@
     </div>
 </div>
 
+<div class="hl-stats" style="max-width: 640px;">
+    <div class="hl-stat"><img src="{% static 'icons/flask.png' %}" alt=""><div><div class="label">Pending</div><div class="value">{{ pending_count }}</div></div></div>
+    <div class="hl-stat"><img src="{% static 'icons/blood-test.png' %}" alt=""><div><div class="label">Completed</div><div class="value">{{ completed_count }}</div></div></div>
+</div>
+
 <form method="get" class="hl-card mb-4" style="max-width: 640px;">
     <label for="patient_id" class="form-label">Filter by patient ID</label>
     <div class="input-group">

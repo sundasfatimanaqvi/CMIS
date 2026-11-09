@@ -3,10 +3,24 @@
 {% block title %}Patient Dashboard{% endblock %}
 
 {% block content %}
-<div class="hl-page-head">
-    <h1 class="hl-page-title">Patient Dashboard</h1>
-    <p class="hl-page-sub">Your appointments and health records.</p>
-</div>
+<section class="hl-welcome">
+    <div>
+        <p class="hl-welcome-kicker">{{ greeting }},</p>
+        <h1>{{ request.user.first_name|default:request.user.username }}</h1>
+        {% if next_appointment %}
+        <p class="hl-welcome-text">Your next appointment is with <strong>Dr. {{ next_appointment.doctor.display_name }}</strong>
+            on <strong>{{ next_appointment.date|date:"D, M j" }}</strong> at <strong>{{ next_appointment.time|time:"H:i" }}</strong>.</p>
+        {% else %}
+        <p class="hl-welcome-text">You have no upcoming appointments. Find a doctor and book your next visit.</p>
+        {% endif %}
+        <div class="hl-welcome-actions">
+            <a class="btn btn-light" href="{% url 'search_doctor' %}">Book appointment</a>
+            <button class="btn btn-outline-light" type="button" data-open-chat>Ask AI assistant</button>
+            <a class="btn btn-outline-light" href="{% url 'medical_history' patient.patient_id %}">Medical history</a>
+        </div>
+    </div>
+    <img src="{% static 'icons/doctor-female.png' %}" alt="">
+</section>
 
 <div class="hl-dash">
     <aside class="hl-card hl-profile">
@@ -17,6 +31,13 @@
         <a href="{% url 'search_doctor' %}" class="btn btn-primary">Find a doctor</a>
         <a href="{% url 'medical_history' patient.patient_id %}" class="btn btn-outline-primary">Full medical history</a>
     </aside>
+
+    <div>
+    <div class="hl-stats">
+        <div class="hl-stat"><img src="{% static 'icons/doctor-appointment.png' %}" alt=""><div><div class="label">Upcoming visits</div><div class="value">{{ stat_upcoming }}</div></div></div>
+        <div class="hl-stat"><img src="{% static 'icons/medicine.png' %}" alt=""><div><div class="label">Active prescriptions</div><div class="value">{{ stat_prescriptions }}</div></div></div>
+        <div class="hl-stat"><img src="{% static 'icons/blood-test.png' %}" alt=""><div><div class="label">Pending tests</div><div class="value">{{ stat_tests }}</div></div></div>
+    </div>
 
     <section class="hl-card">
         <ul class="nav nav-tabs mb-3" id="patientTabs" role="tablist">
@@ -87,5 +108,6 @@
             </div>
         </div>
     </section>
+    </div>
 </div>
 {% endblock %}

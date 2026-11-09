@@ -3,10 +3,21 @@
 {% block title %}Doctor Dashboard{% endblock %}
 
 {% block content %}
-<div class="hl-page-head">
-    <h1 class="hl-page-title">Doctor Dashboard</h1>
-    <p class="hl-page-sub">Your schedule and patients.</p>
-</div>
+<section class="hl-welcome">
+    <div>
+        <p class="hl-welcome-kicker">{{ greeting }},</p>
+        <h1>Dr. {{ doctor.display_name }}</h1>
+        <p class="hl-welcome-text">
+            {% if today_patients %}You have <strong>{{ today_patients }}</strong> appointment{{ today_patients|pluralize }} today.
+            {% else %}You have no appointments today.{% endif %}
+        </p>
+        <div class="hl-welcome-actions">
+            <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#searchPatientModal" type="button">Search patient ID</button>
+            <a class="btn btn-outline-light" href="{% url 'doctor_profile' %}">Edit schedule</a>
+        </div>
+    </div>
+    <img src="{% static 'icons/doctor.png' %}" alt="">
+</section>
 
 <div class="hl-dash">
     <aside class="hl-card hl-profile">
@@ -23,6 +34,47 @@
             <div class="hl-stat"><img src="{% static 'icons/doctor-appointment.png' %}" alt=""><div><div class="label">Tomorrow</div><div class="value">{{ next_day_appointments }}</div></div></div>
             <div class="hl-stat"><img src="{% static 'icons/doctor.png' %}" alt=""><div><div class="label">Today's patients</div><div class="value">{{ today_patients }}</div></div></div>
             <div class="hl-stat"><img src="{% static 'icons/medical-records.png' %}" alt=""><div><div class="label">Total appointments</div><div class="value">{{ total_appointments }}</div></div></div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-lg-7">
+                <div class="hl-card h-100">
+                    <div class="d-flex justify-content-between align-items-baseline mb-3">
+                        <h2 class="h5 mb-0">Next 7 days</h2>
+                        <span class="text-muted small">{{ week_total }} appointment{{ week_total|pluralize }}</span>
+                    </div>
+                    <div class="hl-chart" role="img" aria-label="Appointments per day for the next 7 days">
+                        {% for d in week %}
+                        <div class="hl-chart-col{% if d.is_today %} is-today{% endif %}">
+                            <span class="hl-chart-value">{{ d.count }}</span>
+                            <div class="hl-chart-track"><div class="hl-chart-bar" style="height: {{ d.pct }}%;"></div></div>
+                            <span class="hl-chart-label">{{ d.label }}<small>{{ d.day }}</small></span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="hl-card h-100">
+                    <h2 class="h5 mb-3">Today's schedule</h2>
+                    {% if todays_schedule %}
+                    <ol class="hl-timeline">
+                        {% for a in todays_schedule %}
+                        <li>
+                            <span class="hl-timeline-time">{{ a.time|time:"H:i" }}</span>
+                            <div>
+                                <a href="{% url 'patient_management' a.patient.patient_id %}">{{ a.patient.user.get_full_name|default:a.patient.user.username }}</a>
+                                <div class="text-muted small">{{ a.reason|truncatechars:42 }}</div>
+                            </div>
+                            <span class="hl-badge {{ a.status|slugify }} ms-auto">{{ a.status }}</span>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                    {% else %}
+                    <div class="hl-empty py-3"><img src="{% static 'icons/doctor-appointment.png' %}" alt=""><p>Nothing scheduled for today.</p></div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <div class="hl-card">

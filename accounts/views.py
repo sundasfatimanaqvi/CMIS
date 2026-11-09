@@ -144,6 +144,15 @@ def dashboard_redirect_view(request):
     return redirect('home')
 
 
+def _greeting():
+    hour = timezone.localtime().hour
+    if hour < 12:
+        return "Good morning"
+    if hour < 17:
+        return "Good afternoon"
+    return "Good evening"
+
+
 # --------------------------------------------------------------------------- #
 # Doctor
 # --------------------------------------------------------------------------- #
@@ -156,9 +165,27 @@ def doctor_dashboard(request):
     appointments = doctor.appointments.select_related('patient__user')
     active = appointments.exclude(status='Cancelled')
 
+    # Appointments per day for the next 7 days (bar chart)
+    days = [today + datetime.timedelta(days=i) for i in range(7)]
+    counts = {d: 0 for d in days}
+    for day in active.filter(date__gte=today, date__lte=days[-1]).values_list('date', flat=True):
+        counts[day] += 1
+    peak = max(counts.values()) or 1
+    week = [{
+        'label': d.strftime('%a'),
+        'day': d.day,
+        'count': counts[d],
+        'pct': int(counts[d] * 100 / peak),
+        'is_today': d == today,
+    } for d in days]
+
     context = {
         'doctor': doctor,
+        'greeting': _greeting(),
         'appointments': appointments.filter(date__gte=today).order_by('date', 'time'),
+        'todays_schedule': active.filter(date=today).order_by('time'),
+        'week': week,
+        'week_total': sum(counts.values()),
         'next_day_appointments': active.filter(date=tomorrow).count(),
         'today_patients': active.filter(date=today).count(),
         'total_appointments': active.count(),
@@ -378,15 +405,29 @@ def view_medical_history(request, patient_id):
 def patient_dashboard(request):
     patient = request.user.patient
     today = timezone.localdate()
+    now_time = timezone.localtime().time()
     appointments = patient.appointments.select_related('doctor__user')
+    upcoming = appointments.filter(date__gte=today, status='Scheduled')
+    # Today's slots that have already passed are not "next"
+    next_appointment = next(
+        (a for a in upcoming if a.date > today or a.time >= now_time), None
+    )
+
+    prescriptions = Prescription.objects.filter(patient=patient).select_related('doctor').order_by('-date_prescribed')
+    prescribed_tests = MedicalTest.objects.filter(patient=patient).select_related('doctor__user').order_by('-test_date')
 
     context = {
         'patient': patient,
-        'upcoming_appointments': appointments.filter(date__gte=today, status='Scheduled'),
+        'greeting': _greeting(),
+        'next_appointment': next_appointment,
+        'upcoming_appointments': upcoming,
         'past_appointments': appointments.exclude(date__gte=today, status='Scheduled').order_by('-date', '-time'),
-        'prescriptions': Prescription.objects.filter(patient=patient).select_related('doctor').order_by('-date_prescribed'),
-        'prescribed_tests': MedicalTest.objects.filter(patient=patient).select_related('doctor__user').order_by('-test_date'),
+        'prescriptions': prescriptions,
+        'prescribed_tests': prescribed_tests,
         'medical_history': MedicalHistory.objects.filter(patient=patient).select_related('doctor').order_by('-date_added'),
+        'stat_upcoming': upcoming.count(),
+        'stat_prescriptions': prescriptions.filter(status='Not Fulfilled').count(),
+        'stat_tests': prescribed_tests.filter(status='Pending').count(),
     }
     return render(request, 'accounts/patient_dashboard.html', context)
 
@@ -515,7 +556,10 @@ def update_appointment(request, appointment_id):
 # --------------------------------------------------------------------------- #
 @pharmacy_required
 def pharmacy_dashboard(request):
-    return render(request, 'accounts/pharmacy_dashboard.html')
+    return render(request, 'accounts/pharmacy_dashboard.html', {
+        'pending_prescriptions': Prescription.objects.filter(status='Not Fulfilled').count(),
+        'fulfilled_prescriptions': Prescription.objects.filter(status='Fulfilled').count(),
+    })
 
 
 @pharmacy_required
@@ -559,6 +603,7 @@ def laboratory_dashboard(request):
         'tests': tests[:100],
         'patient_id': patient_id,
         'pending_count': MedicalTest.objects.filter(status='Pending').count(),
+        'completed_count': MedicalTest.objects.filter(status='Completed').count(),
     })
 
 

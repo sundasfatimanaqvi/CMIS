@@ -37,6 +37,12 @@ Doctors set working hours, a specialization and unavailable dates on their profi
 Patients can book 30-minute slots up to 14 days ahead; already-booked and past slots are hidden,
 and double booking is prevented.
 
+## Dashboards and themes
+
+Patient, doctor, pharmacy and laboratory dashboards show summary tiles built from live data; the doctor
+dashboard adds a 7-day appointments chart and today's timeline. A light/dark theme toggle in the navbar
+remembers your choice (and follows the system setting on first visit). Times use the `Asia/Karachi` time zone.
+
 ## AI health assistant (patients)
 
 Patients get an "Ask AI" chat button on every page. Set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`)

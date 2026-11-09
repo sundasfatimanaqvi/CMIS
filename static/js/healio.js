@@ -66,6 +66,18 @@
         });
     }
 
+    // Light / dark theme toggle (choice is remembered in this browser)
+    document.addEventListener("DOMContentLoaded", function () {
+        var button = document.getElementById("themeToggle");
+        if (!button) { return; }
+        button.addEventListener("click", function () {
+            var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            document.documentElement.setAttribute("data-bs-theme", next);
+            try { localStorage.setItem("hl-theme", next); } catch (e) {}
+        });
+    });
+
     // Auto-dismiss flash messages after a few seconds
     document.addEventListener("DOMContentLoaded", function () {
         document.querySelectorAll(".hl-messages .alert").forEach(function (alertEl) {

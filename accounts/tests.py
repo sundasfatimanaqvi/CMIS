@@ -529,3 +529,68 @@ class ChatbotRestrictionTests(BaseCase):
         self.assertTrue(user_content.startswith("<patient_message>") and user_content.endswith("</patient_message>"))
         self.assertEqual(user_content.count("</patient_message>"), 1)
         self.assertIn("OFF_TOPIC", captured["body"]["messages"][0]["content"])
+
+
+class DashboardInsightsTests(BaseCase):
+    def setUp(self):
+        super().setUp()
+        self.today = timezone.localdate()
+
+    def appt(self, days, hour, status="Scheduled"):
+        return Appointment.objects.create(
+            patient=self.patient, doctor=self.doctor, date=self.today + datetime.timedelta(days=days),
+            time=datetime.time(hour, 0), reason="Checkup", status=status)
+
+    def test_patient_dashboard_stats_and_next_appointment(self):
+        later = self.appt(3, 11)
+        sooner = self.appt(1, 9)
+        self.appt(2, 9, status="Cancelled")
+        Prescription.objects.create(patient=self.patient, doctor=self.doctor_user, medicine_name="A", dosage="1", instructions="x")
+        Prescription.objects.create(patient=self.patient, doctor=self.doctor_user, medicine_name="B", dosage="1", instructions="x", status="Fulfilled")
+        MedicalTest.objects.create(patient=self.patient, doctor=self.doctor, test_name="CBC")
+        self.login(self.patient_user)
+        response = self.client.get(reverse("patient_dashboard"))
+        ctx = response.context
+        self.assertEqual(ctx["next_appointment"], sooner)
+        self.assertNotEqual(ctx["next_appointment"], later)
+        self.assertEqual((ctx["stat_upcoming"], ctx["stat_prescriptions"], ctx["stat_tests"]), (2, 1, 1))
+        self.assertIn(ctx["greeting"], ("Good morning", "Good afternoon", "Good evening"))
+        self.assertContains(response, "Your next appointment is with")
+
+    def test_patient_dashboard_without_appointments(self):
+        self.login(self.patient_user)
+        response = self.client.get(reverse("patient_dashboard"))
+        self.assertIsNone(response.context["next_appointment"])
+        self.assertContains(response, "no upcoming appointments")
+
+    def test_doctor_dashboard_week_chart(self):
+        self.appt(0, 23)
+        self.appt(1, 9)
+        self.appt(1, 10)
+        self.appt(1, 11, status="Cancelled")   # cancelled slots are not counted
+        self.appt(9, 9)                         # outside the 7-day window
+        self.login(self.doctor_user)
+        response = self.client.get(reverse("doctor_dashboard"))
+        week = response.context["week"]
+        self.assertEqual(len(week), 7)
+        self.assertEqual([d["count"] for d in week][:3], [1, 2, 0])
+        self.assertEqual(week[1]["pct"], 100)
+        self.assertTrue(week[0]["is_today"])
+        self.assertEqual(response.context["week_total"], 3)
+        self.assertEqual(len(response.context["todays_schedule"]), 1)
+        self.assertContains(response, "Today's schedule")
+
+    def test_pharmacy_and_lab_summaries(self):
+        Prescription.objects.create(patient=self.patient, doctor=self.doctor_user, medicine_name="A", dosage="1", instructions="x")
+        Prescription.objects.create(patient=self.patient, doctor=self.doctor_user, medicine_name="B", dosage="1", instructions="x", status="Fulfilled")
+        MedicalTest.objects.create(patient=self.patient, doctor=self.doctor, test_name="CBC")
+        MedicalTest.objects.create(patient=self.patient, doctor=self.doctor, test_name="X-ray", status="Completed")
+        self.login(self.pharmacy_user)
+        ctx = self.client.get(reverse("pharmacy_dashboard")).context
+        self.assertEqual((ctx["pending_prescriptions"], ctx["fulfilled_prescriptions"]), (1, 1))
+        self.login(self.lab_user)
+        ctx = self.client.get(reverse("laboratory_dashboard")).context
+        self.assertEqual((ctx["pending_count"], ctx["completed_count"]), (1, 1))
+
+    def test_theme_toggle_is_rendered(self):
+        self.assertContains(self.client.get(reverse("home")), 'id="themeToggle"')

@@ -98,6 +98,9 @@
         el.chips.querySelectorAll("button").forEach(function (chip) {
             chip.addEventListener("click", function () { send(chip.dataset.prompt); });
         });
+        document.querySelectorAll("[data-open-chat]").forEach(function (button) {
+            button.addEventListener("click", function () { toggle(true); });
+        });
         document.addEventListener("keydown", function (event) {
             if (event.key === "Escape" && state.open) { toggle(false); }
         });
