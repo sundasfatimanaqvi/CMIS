@@ -7,9 +7,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .models import (
-    Appointment, Doctor, Laboratory, MedicalHistory, MedicalTest, Patient,
+    Appointment, ConsentGrant, Doctor, Laboratory, MedicalHistory, MedicalTest, Patient,
     Pharmacy, Prescription,
 )
+from . import consent
 
 PASSWORD = "Str0ng-Pass-123"
 
@@ -34,6 +35,11 @@ class BaseCase(TestCase):
 
     def login(self, user):
         self.client.force_login(user)
+
+    def share_all(self):
+        # Since consent was added, the patient must share their record before other roles can use it.
+        for user in (self.doctor_user, self.pharmacy_user, self.lab_user):
+            consent.grant(self.patient, user, consent.SCOPES)
 
     def post_json(self, url, payload):
         return self.client.post(url, data=json.dumps(payload), content_type="application/json")
@@ -156,6 +162,7 @@ class CsrfTests(BaseCase):
 class DoctorRecordTests(BaseCase):
     def setUp(self):
         super().setUp()
+        self.share_all()
         self.login(self.doctor_user)
 
     def test_search_patient(self):
@@ -222,6 +229,7 @@ class MedicalHistoryAccessTests(BaseCase):
                              reverse("dashboard"), fetch_redirect_response=False)
 
     def test_doctor_can_view_any_but_pharmacy_cannot(self):
+        self.share_all()
         self.login(self.doctor_user)
         self.assertEqual(self.client.get(reverse("medical_history", args=[self.patient.patient_id])).status_code, 200)
         self.login(self.pharmacy_user)
@@ -334,6 +342,7 @@ class AppointmentTests(BaseCase):
 class PharmacyAndLabTests(BaseCase):
     def setUp(self):
         super().setUp()
+        self.share_all()
         self.prescription = Prescription.objects.create(
             patient=self.patient, doctor=self.doctor_user, medicine_name="Panadol", dosage="500mg", instructions="x")
         self.test = MedicalTest.objects.create(patient=self.patient, doctor=self.doctor, test_name="CBC")
@@ -534,6 +543,7 @@ class ChatbotRestrictionTests(BaseCase):
 class DashboardInsightsTests(BaseCase):
     def setUp(self):
         super().setUp()
+        self.share_all()
         self.today = timezone.localdate()
 
     def appt(self, days, hour, status="Scheduled"):

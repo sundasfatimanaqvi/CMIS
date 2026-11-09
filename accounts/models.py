@@ -173,3 +173,60 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"{self.patient} with {self.doctor} on {self.date} {self.time}"
+
+
+class ConsentGrant(models.Model):
+    """A patient's permission for one other user (doctor, pharmacy or laboratory) to use one part of their record.
+
+    One row per (patient, grantee, scope). A grant is active when it is not revoked and not expired.
+    `source` records how it came to exist: the patient gave it, or a doctor used emergency 'break glass' access.
+    """
+    SCOPE_RECORDS = 'records'            # medical history entries
+    SCOPE_PRESCRIPTIONS = 'prescriptions'
+    SCOPE_TESTS = 'tests'
+    SCOPE_CHOICES = [
+        (SCOPE_RECORDS, 'Medical history'),
+        (SCOPE_PRESCRIPTIONS, 'Prescriptions'),
+        (SCOPE_TESTS, 'Lab tests'),
+    ]
+    SOURCE_PATIENT = 'patient'
+    SOURCE_BREAK_GLASS = 'break_glass'
+
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='consent_grants')
+    grantee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='consent_received')
+    scope = models.CharField(max_length=20, choices=SCOPE_CHOICES)
+    source = models.CharField(max_length=20, default=SOURCE_PATIENT)
+    reason = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['patient', 'grantee', 'scope'])]
+
+    def is_active(self, now=None):
+        from django.utils import timezone
+        now = now or timezone.now()
+        return self.revoked_at is None and (self.expires_at is None or self.expires_at > now)
+
+    def __str__(self):
+        return f"{self.patient} -> {self.grantee} ({self.scope})"
+
+
+class AccessLog(models.Model):
+    """Every decision about access to a patient's record, allowed or denied. Append-only by convention."""
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='access_log_entries')
+    actor_role = models.CharField(max_length=20, blank=True)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='access_log')
+    scope = models.CharField(max_length=20)
+    action = models.CharField(max_length=40)
+    allowed = models.BooleanField()
+    basis = models.CharField(max_length=20, blank=True)   # self / grant / treatment / break_glass / none
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.actor_role} {self.action} {self.scope} {'ok' if self.allowed else 'DENIED'}"

@@ -1,0 +1,20 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Patient access needed{% endblock %}
+
+{% block content %}
+<div class="hl-card mx-auto" style="max-width: 620px;">
+    <h1 class="h3">Patient access needed</h1>
+    <p>This patient has not given you access to their record, and you have no appointment with them.</p>
+    <p class="text-muted">Ask the patient to share their record with you from <strong>Sharing &amp; access</strong> in their account.</p>
+    <hr>
+    <h2 class="h5">Emergency access</h2>
+    <p class="text-muted">Only if the patient cannot consent and treatment cannot wait. You must write a reason. Access lasts 24 hours and the patient will see it in their access log.</p>
+    <form method="post" action="{% url 'break_glass' patient.patient_id %}">
+        {% csrf_token %}
+        <label class="form-label" for="reason">Reason</label>
+        <textarea class="form-control" id="reason" name="reason" rows="3" required minlength="10" maxlength="255"></textarea>
+        <button type="submit" class="btn btn-danger mt-3">Request emergency access</button>
+    </form>
+    <p class="mt-3 mb-0"><a href="{% url 'doctor_dashboard' %}">&larr; Back to dashboard</a></p>
+</div>
+{% endblock %}

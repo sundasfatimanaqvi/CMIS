@@ -20,10 +20,10 @@ from .decorators import (
     doctor_required, get_role, laboratory_required, patient_required,
     pharmacy_required, role_required,
 )
-from . import chatbot
+from . import chatbot, consent
 from .forms import RegistrationForm
 from .models import (
-    Appointment, Doctor, Laboratory, MedicalHistory, MedicalTest, Patient,
+    AccessLog, Appointment, ConsentGrant, Doctor, Laboratory, MedicalHistory, MedicalTest, Patient,
     Pharmacy, Prescription,
 )
 
@@ -295,6 +295,8 @@ def search_patient(request):
 @doctor_required
 def patient_management(request, patient_id):
     patient = get_object_or_404(Patient, patient_id=patient_id)
+    if not consent.check_access(request.user, patient, 'records', 'view_patient'):
+        return render(request, "accounts/consent_required.html", {"patient": patient}, status=403)
     return render(request, "accounts/patient_management.html", {
         "patient": patient,
         "prescriptions": Prescription.objects.filter(patient=patient).select_related('doctor').order_by('-date_prescribed'),
@@ -326,6 +328,8 @@ def prescribe_medicine(request, patient_id):
         return JsonResponse({"success": False, "error": "Invalid JSON format."}, status=400)
 
     patient = get_object_or_404(Patient, patient_id=patient_id)
+    if not consent.check_access(request.user, patient, 'prescriptions', 'prescribe_medicine'):
+        return JsonResponse({"success": False, "error": "This patient has not given you access."}, status=403)
     medicine_name = _clean_text(data, "medicine_name", 255)
     dosage = _clean_text(data, "dosage", 100)
     instructions = _clean_text(data, "instructions", 2000)
@@ -350,6 +354,8 @@ def prescribe_test(request, patient_id):
         return JsonResponse({"success": False, "error": "Invalid JSON format."}, status=400)
 
     patient = get_object_or_404(Patient, patient_id=patient_id)
+    if not consent.check_access(request.user, patient, 'tests', 'prescribe_test'):
+        return JsonResponse({"success": False, "error": "This patient has not given you access."}, status=403)
     test_name = _clean_text(data, "test_name", 255)
     if not test_name:
         return JsonResponse({"success": False, "error": "Test name is required."}, status=400)
@@ -371,6 +377,8 @@ def add_medical_history(request, patient_id):
         return JsonResponse({"success": False, "error": "Invalid JSON format."}, status=400)
 
     patient = get_object_or_404(Patient, patient_id=patient_id)
+    if not consent.check_access(request.user, patient, 'records', 'add_history'):
+        return JsonResponse({"success": False, "error": "This patient has not given you access."}, status=403)
     details = _clean_text(data, "details", 5000)
     if not details:
         return JsonResponse({"success": False, "error": "Details are required."}, status=400)
@@ -390,6 +398,9 @@ def view_medical_history(request, patient_id):
     if role not in ('patient', 'doctor'):
         messages.error(request, "You do not have access to medical records.")
         return redirect('dashboard')
+
+    if role == 'doctor' and not consent.check_access(request.user, patient, 'records', 'view_history'):
+        return render(request, "accounts/consent_required.html", {"patient": patient}, status=403)
 
     history_entries = MedicalHistory.objects.filter(patient=patient).select_related('doctor').order_by("-updated_at")
     return render(request, "accounts/medical_history.html", {
@@ -573,6 +584,10 @@ def pharmacy_lookup(request):
         messages.error(request, "No patient found with this ID.")
         return redirect('pharmacy_dashboard')
 
+    if not consent.check_access(request.user, patient, 'prescriptions', 'pharmacy_lookup'):
+        messages.error(request, "This patient has not shared their prescriptions with you. Ask them to grant access in Healio.")
+        return redirect('pharmacy_dashboard')
+
     prescriptions = Prescription.objects.filter(patient=patient).select_related('doctor').order_by('-date_prescribed')
     return render(request, "accounts/pharmacy_lookup.html", {
         "patient": patient,
@@ -585,6 +600,8 @@ def pharmacy_lookup(request):
 @require_POST
 def toggle_prescription_status(request, prescription_id):
     prescription = get_object_or_404(Prescription, id=prescription_id)
+    if not consent.check_access(request.user, prescription.patient, 'prescriptions', 'toggle_prescription'):
+        return JsonResponse({"success": False, "error": "This patient has not given you access."}, status=403)
     prescription.status = "Not Fulfilled" if prescription.status == "Fulfilled" else "Fulfilled"
     prescription.save(update_fields=['status'])
     return JsonResponse({"success": True, "new_status": prescription.status})
@@ -595,15 +612,17 @@ def toggle_prescription_status(request, prescription_id):
 # --------------------------------------------------------------------------- #
 @laboratory_required
 def laboratory_dashboard(request):
-    tests = MedicalTest.objects.select_related('patient__user', 'doctor__user').order_by('status', '-test_date')
+    visible = consent.patients_visible_to(request.user, 'tests')
+    all_tests = MedicalTest.objects.filter(patient_id__in=visible)
+    tests = all_tests.select_related('patient__user', 'doctor__user').order_by('status', '-test_date')
     patient_id = request.GET.get('patient_id', '').strip()
     if patient_id:
         tests = tests.filter(patient__patient_id=patient_id)
     return render(request, 'accounts/laboratory_dashboard.html', {
         'tests': tests[:100],
         'patient_id': patient_id,
-        'pending_count': MedicalTest.objects.filter(status='Pending').count(),
-        'completed_count': MedicalTest.objects.filter(status='Completed').count(),
+        'pending_count': all_tests.filter(status='Pending').count(),
+        'completed_count': all_tests.filter(status='Completed').count(),
     })
 
 
@@ -611,9 +630,75 @@ def laboratory_dashboard(request):
 @require_POST
 def toggle_test_status(request, test_id):
     test = get_object_or_404(MedicalTest, pk=test_id)
+    if not consent.check_access(request.user, test.patient, 'tests', 'toggle_test'):
+        return JsonResponse({"success": False, "error": "This patient has not given you access."}, status=403)
     test.status = "Pending" if test.status == "Completed" else "Completed"
     test.save(update_fields=['status'])
     return JsonResponse({"success": True, "new_status": test.status})
+
+
+# --------------------------------------------------------------------------- #
+# Consent: who can see my record, and who looked
+# --------------------------------------------------------------------------- #
+GRANTEE_ROLES = ('doctor', 'pharmacy', 'laboratory')
+
+
+@patient_required
+def sharing_access(request):
+    patient = request.user.patient
+    grants = ConsentGrant.objects.filter(patient=patient).select_related('grantee').order_by('-created_at')[:200]
+    now = timezone.now()
+    active = [g for g in grants if g.is_active(now)]
+    log = AccessLog.objects.filter(patient=patient).select_related('actor').order_by('-created_at')[:50]
+    return render(request, "accounts/sharing.html", {
+        "patient": patient,
+        "active_grants": active,
+        "log": log,
+        "scope_choices": ConsentGrant.SCOPE_CHOICES,
+    })
+
+
+@patient_required
+@require_POST
+def consent_grant(request):
+    username = request.POST.get('username', '').strip()
+    scopes = [s for s in request.POST.getlist('scopes') if s in consent.SCOPES]
+    grantee = User.objects.filter(username=username).first()
+    if not grantee or get_role(grantee) not in GRANTEE_ROLES:
+        messages.error(request, "No doctor, pharmacy or laboratory account with that username.")
+    elif not scopes:
+        messages.error(request, "Choose at least one thing to share.")
+    else:
+        try:
+            days = int(request.POST.get('days') or 0)
+        except ValueError:
+            days = 0
+        days = max(0, min(days, 365)) or None
+        consent.grant(request.user.patient, grantee, scopes, days=days)
+        messages.success(request, f"Access given to {grantee.username}.")
+    return redirect('sharing_access')
+
+
+@patient_required
+@require_POST
+def consent_revoke(request, grant_id):
+    grant_obj = get_object_or_404(ConsentGrant, pk=grant_id, patient=request.user.patient)
+    consent.revoke(grant_obj)
+    messages.success(request, "Access removed.")
+    return redirect('sharing_access')
+
+
+@doctor_required
+@require_POST
+def break_glass(request, patient_id):
+    patient = get_object_or_404(Patient, patient_id=patient_id)
+    try:
+        consent.break_glass(request.user, patient, request.POST.get('reason', ''))
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return render(request, "accounts/consent_required.html", {"patient": patient}, status=403)
+    messages.warning(request, "Emergency access granted for 24 hours. The patient will see this in their access log.")
+    return redirect('patient_management', patient_id=patient.patient_id)
 
 
 # --------------------------------------------------------------------------- #

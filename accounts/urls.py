@@ -21,6 +21,10 @@ urlpatterns = [
     path('api/chatbot-conversation/', views.chatbot_conversation, name='chatbot_conversation'),
     path('appointments/<int:appointment_id>/update/', views.update_appointment, name='update_appointment'),
 
+    path('sharing/', views.sharing_access, name='sharing_access'),
+    path('sharing/grant/', views.consent_grant, name='consent_grant'),
+    path('sharing/revoke/<int:grant_id>/', views.consent_revoke, name='consent_revoke'),
+
     # Doctor
     path('doctor_dashboard/', views.doctor_dashboard, name='doctor_dashboard'),
     path('doctor/profile/', views.doctor_profile, name='doctor_profile'),
@@ -30,6 +34,7 @@ urlpatterns = [
     path('prescribe_test/<str:patient_id>/', views.prescribe_test, name='prescribe_test'),
     path('add_medical_history/<str:patient_id>/', views.add_medical_history, name='add_medical_history'),
     path('medical_history/<str:patient_id>/', views.view_medical_history, name='medical_history'),
+    path('break_glass/<str:patient_id>/', views.break_glass, name='break_glass'),
 
     # Pharmacy
     path('pharmacy/', views.pharmacy_dashboard, name='pharmacy_dashboard'),

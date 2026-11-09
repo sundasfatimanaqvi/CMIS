@@ -1,0 +1,86 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Sharing &amp; access{% endblock %}
+
+{% block content %}
+<div class="hl-page-head">
+    <a href="{% url 'patient_dashboard' %}" class="small">&larr; Back to dashboard</a>
+    <h1 class="hl-page-title mt-1">Sharing &amp; access</h1>
+    <p class="hl-page-sub">You decide who can see and update your record. Doctors you have an appointment with can see it automatically. Everyone else needs your permission.</p>
+</div>
+
+<div class="hl-card mb-4">
+    <h2 class="h5 mb-3">Who has access</h2>
+    {% if active_grants %}
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>Who</th><th>What</th><th>Until</th><th>How</th><th></th></tr></thead>
+            <tbody>
+            {% for g in active_grants %}
+            <tr>
+                <td>{{ g.grantee.username }}</td>
+                <td>{{ g.get_scope_display }}</td>
+                <td>{% if g.expires_at %}{{ g.expires_at|date:"d M Y H:i" }}{% else %}Until you remove it{% endif %}</td>
+                <td>{% if g.source == 'break_glass' %}<span class="badge text-bg-danger">Emergency access</span> <span class="small text-muted">{{ g.reason }}</span>{% else %}You gave it{% endif %}</td>
+                <td>
+                    <form method="post" action="{% url 'consent_revoke' g.id %}">{% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">Nobody has been given access yet.</p>
+    {% endif %}
+</div>
+
+<div class="hl-card mb-4">
+    <h2 class="h5 mb-3">Give access</h2>
+    <form method="post" action="{% url 'consent_grant' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label" for="username">Their username</label>
+            <input type="text" class="form-control" id="username" name="username" required>
+        </div>
+        <div class="mb-3">
+            <span class="form-label d-block">What they can see</span>
+            {% for value, label in scope_choices %}
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="scopes" value="{{ value }}" id="scope-{{ value }}">
+                <label class="form-check-label" for="scope-{{ value }}">{{ label }}</label>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="mb-3" style="max-width: 320px;">
+            <label class="form-label" for="days">For how many days <span class="text-muted">(empty = no end date)</span></label>
+            <input type="number" class="form-control" id="days" name="days" min="1" max="365">
+        </div>
+        <button type="submit" class="btn btn-primary">Give access</button>
+    </form>
+</div>
+
+<div class="hl-card mb-4">
+    <h2 class="h5 mb-3">Who looked at my record</h2>
+    {% if log %}
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>When</th><th>Who</th><th>What</th><th>Result</th></tr></thead>
+            <tbody>
+            {% for e in log %}
+            <tr>
+                <td>{{ e.created_at|date:"d M Y H:i" }}</td>
+                <td>{{ e.actor.username|default:"(deleted account)" }} ({{ e.actor_role }})</td>
+                <td>{{ e.action }}</td>
+                <td>{% if e.allowed %}Allowed ({{ e.basis }}){% else %}<span class="text-danger fw-semibold">Blocked</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No one has tried to open your record.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -17,6 +17,7 @@
             <a class="btn btn-light" href="{% url 'search_doctor' %}">Book appointment</a>
             <button class="btn btn-outline-light" type="button" data-open-chat>Ask AI assistant</button>
             <a class="btn btn-outline-light" href="{% url 'medical_history' patient.patient_id %}">Medical history</a>
+            <a class="btn btn-outline-light" href="{% url 'sharing_access' %}">Sharing &amp; access</a>
         </div>
     </div>
     <img src="{% static 'icons/doctor-female.png' %}" alt="">
