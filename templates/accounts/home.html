@@ -5,8 +5,8 @@
 {% block fullwidth %}
 <section class="hl-hero">
     <div>
-        <h1>Welcome to Healio</h1>
-        <p>Choose well by choosing us. Find trusted doctors, book appointments and keep your medical records in one place.</p>
+        <h1>Welcome to Healio!</h1>
+        <p>Choose well by choosing us.</p>
         {% if user.is_authenticated %}
             <a class="btn btn-light btn-lg mt-2" href="{% url 'dashboard' %}">Go to your dashboard</a>
         {% else %}

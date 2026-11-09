@@ -1,7 +1,7 @@
 /* Healio shared design system -------------------------------------------- */
 :root {
-    --hl-primary: #0b6bcb;
-    --hl-primary-dark: #084f96;
+    --hl-primary: #007bff;
+    --hl-primary-dark: #0056b3;
     --hl-primary-soft: #e8f2fc;
     --hl-accent: #14a38b;
     --hl-bg: #f4f7fb;
@@ -36,19 +36,20 @@ a:hover { color: var(--hl-primary-dark); }
 .hl-nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 1030;
     min-height: var(--hl-nav-h);
-    background: linear-gradient(90deg, var(--hl-primary-dark), var(--hl-primary));
-    box-shadow: 0 2px 12px rgba(8, 79, 150, .25);
+    background: #007bff;
+    padding: 10px 30px;
 }
-.hl-nav .navbar-brand { color: #fff; font-weight: 700; font-size: 1.5rem; letter-spacing: .3px; }
-.hl-nav .navbar-brand span { color: #8be3d3; }
-.hl-nav .nav-link { color: rgba(255,255,255,.88); font-weight: 500; padding: .5rem .9rem; border-radius: 8px; }
-.hl-nav .nav-link:hover, .hl-nav .nav-link.active { color: #fff; background: rgba(255,255,255,.14); }
-.hl-nav .navbar-toggler { border-color: rgba(255,255,255,.5); }
+.hl-nav .navbar-brand { color: #fff !important; font-weight: bold; font-size: 24px; }
+.hl-nav .navbar-toggler { border-color: rgba(255,255,255,.6); }
 .hl-nav .navbar-toggler-icon { filter: invert(1); }
-.hl-nav .btn-nav-outline { color: #fff; border: 1px solid rgba(255,255,255,.7); font-weight: 600; }
-.hl-nav .btn-nav-outline:hover { background: #fff; color: var(--hl-primary-dark); }
+.hl-nav .btn-outline-primary { color: #fff !important; border-color: #fff; font-weight: bold; }
+.hl-nav .btn-outline-primary:hover { background: #fff; color: #007bff !important; }
+.hl-nav .btn-outline-danger { color: #fff !important; border-color: #fff; font-weight: bold; }
+.hl-nav .btn-outline-danger:hover { background: #fff; color: red !important; }
+.hl-nav .btn-outline-light { font-weight: bold; }
 @media (max-width: 991.98px) {
-    .hl-nav .navbar-collapse { background: var(--hl-primary-dark); padding: .75rem; border-radius: 0 0 12px 12px; }
+    .hl-nav { padding: 10px 16px; }
+    .hl-nav .navbar-collapse { padding-bottom: .5rem; }
 }
 
 /* Buttons ----------------------------------------------------------------- */
@@ -89,18 +90,17 @@ a:hover { color: var(--hl-primary-dark); }
 /* Hero (home) ---------------------------------------------------------------- */
 .hl-hero {
     position: relative;
-    min-height: 460px;
+    height: calc(100vh - var(--hl-nav-h));
+    min-height: 420px;
     display: flex; align-items: center; justify-content: center;
     text-align: center; color: #fff;
-    background: url("../accounts/back.jpg") center/cover no-repeat;
+    background: url("../accounts/back.jpg") no-repeat center center;
+    background-size: cover;
 }
-.hl-hero::before {
-    content: ""; position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(8,79,150,.88), rgba(20,163,139,.55));
-}
-.hl-hero > div { position: relative; padding: 2rem 1rem; max-width: 720px; }
-.hl-hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; }
-.hl-hero p { font-size: 1.2rem; opacity: .95; }
+.hl-hero::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); }
+.hl-hero > div { position: relative; z-index: 2; padding: 2rem 1rem; max-width: 720px; }
+.hl-hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: bold; }
+.hl-hero p { font-size: 1.25rem; }
 
 .hl-feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
 .hl-feature {
@@ -129,7 +129,7 @@ a:hover { color: var(--hl-primary-dark); }
 
 /* Auth pages -------------------------------------------------------------------- */
 .hl-auth { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - var(--hl-nav-h) - 70px); }
-.hl-auth-side { background: linear-gradient(135deg, rgba(8,79,150,.75), rgba(20,163,139,.55)), url("../accounts/back.jpg") center/cover; }
+.hl-auth-side { background: url("../accounts/back.jpg") no-repeat center center; background-size: cover; }
 .hl-auth-form { display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
 .hl-auth-box { width: 100%; max-width: 460px; }
 .hl-auth-box h1 { font-size: 1.75rem; font-weight: 700; }
