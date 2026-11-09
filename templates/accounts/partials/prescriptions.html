@@ -1,0 +1,17 @@
+{% comment %}Expects `items` (Prescription queryset){% endcomment %}
+{% for p in items %}
+<div class="hl-record">
+    <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+        <strong>{{ p.medicine_name }}</strong>
+        <span class="hl-badge {{ p.status|slugify }}">{{ p.status }}</span>
+    </div>
+    <dl>
+        <dt>Dosage</dt><dd>{{ p.dosage }}</dd>
+        <dt>Instructions</dt><dd>{{ p.instructions|linebreaksbr }}</dd>
+        <dt>Prescribed by</dt><dd>Dr. {{ p.doctor.get_full_name|default:p.doctor.username }}</dd>
+        <dt>Date</dt><dd>{{ p.date_prescribed|date:"M d, Y" }}</dd>
+    </dl>
+</div>
+{% empty %}
+<div class="hl-empty">No prescriptions yet.</div>
+{% endfor %}

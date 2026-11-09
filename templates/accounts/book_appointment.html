@@ -1,84 +1,97 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Appointment - Healio</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+{% extends 'accounts/base.html' %}
+{% block title %}Book Appointment{% endblock %}
 
-<div class="container mt-5">
-    <div class="card p-4">
-        <h2 class="text-center">Book Appointment</h2>
-        <h4 class="text-center">Dr. {{ doctor.user.username }} - {{ doctor.specialization }}</h4>
+{% block content %}
+<div class="hl-page-head">
+    <a href="{% url 'search_doctor' %}" class="small">&larr; Back to doctors</a>
+    <h1 class="hl-page-title mt-1">Book an appointment</h1>
+</div>
 
-        <form method="POST">
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="hl-card hl-doctor-card">
+            <img class="hl-avatar" src="{{ doctor.avatar_url }}" alt="">
+            <h2 class="h5">Dr. {{ doctor.display_name }}</h2>
+            <span class="hl-chip mb-2">{{ doctor.specialization|default:"General Physician" }}</span>
+            <p class="text-muted mb-0">Working hours {{ doctor.availability }}<br>30-minute appointments</p>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <form method="post" class="hl-card" id="bookingForm">
             {% csrf_token %}
-            
-            <label><strong>Select a Date</strong></label>
-            <select name="date" id="date-select" class="form-control" required>
-                <option value="">-- Choose Date --</option>
-                {% for date in available_dates %}
-                    <option value="{{ date }}">{{ date }}</option>
-                {% endfor %}
-            </select>
+            {% if available_dates %}
+            <div class="mb-4">
+                <label for="date-select" class="form-label">1. Choose a date</label>
+                <select name="date" id="date-select" class="form-select" required>
+                    <option value="">Select a date</option>
+                    {% for d in available_dates %}
+                        <option value="{{ d }}" {% if d == selected.date %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-            <label class="mt-3"><strong>Select a Time</strong></label>
-            <select name="time" id="time-select" class="form-control" required>
-                <option value="">-- Choose Time --</option>
-            </select>
+            <fieldset class="mb-4">
+                <legend class="form-label fs-6">2. Choose a time</legend>
+                <div class="hl-slots" id="slots" aria-live="polite">
+                    <span class="text-muted">Pick a date to see available times.</span>
+                </div>
+            </fieldset>
 
-            <label class="mt-3"><strong>Name:</strong></label>
-            <input type="text" name="name" value="{{ request.user.username }}" class="form-control" required readonly>
+            <div class="mb-4">
+                <label for="description" class="form-label">3. Reason for the visit</label>
+                <textarea name="description" id="description" class="form-control" rows="3" maxlength="1000" required>{{ selected.description }}</textarea>
+            </div>
 
-            <label class="mt-3"><strong>Patient ID:</strong></label>
-            <input type="text" name="patient_id" value="{{ request.user.patient.patient_id }}" class="form-control" required readonly>
-
-            <label class="mt-3"><strong>Reason for Appointment:</strong></label>
-            <textarea name="description" class="form-control" required></textarea>
-
-            <button type="submit" class="btn btn-primary mt-3 w-100">Confirm Appointment</button>
+            <p class="text-muted small">Booking as <strong>{{ request.user.get_full_name|default:request.user.username }}</strong> (Patient ID {{ patient.patient_id }})</p>
+            <button type="submit" class="btn btn-primary w-100 py-2" id="confirmBtn" disabled>Confirm appointment</button>
+            {% else %}
+            <div class="hl-empty">Dr. {{ doctor.display_name }} has no free slots in the next two weeks. Please check again later or choose another doctor.</div>
+            {% endif %}
         </form>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const timeSelect = document.getElementById("time-select");
+    (function () {
+        var select = document.getElementById("date-select");
+        if (!select) { return; }
+        var slots = document.getElementById("slots");
+        var confirmBtn = document.getElementById("confirmBtn");
+        var preselected = "{{ selected.time|escapejs }}";
 
-        // Default available time slots
-        const availableTimeSlots = {
-            "start": "{{ available_time_slots.start }}",
-            "end": "{{ available_time_slots.end }}"
-        };
-
-        // Generate time slots dynamically
-        document.getElementById("date-select").addEventListener("change", function() {
-            timeSelect.innerHTML = "<option value=''>-- Choose Time --</option>";
-
-            let startTime = availableTimeSlots.start;
-            let endTime = availableTimeSlots.end;
-            let currentTime = startTime;
-
-            while (currentTime < endTime) {
-                let option = document.createElement("option");
-                option.value = currentTime;
-                option.textContent = currentTime;
-                timeSelect.appendChild(option);
-
-                let [hours, minutes] = currentTime.split(":").map(Number);
-                minutes += 30;
-                if (minutes >= 60) {
-                    hours += 1;
-                    minutes = 0;
-                }
-                currentTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        function render(times) {
+            slots.innerHTML = "";
+            confirmBtn.disabled = true;
+            if (!times.length) {
+                slots.innerHTML = '<span class="text-muted">No free times on this date.</span>';
+                return;
             }
-        });
-    });
-</script>
+            times.forEach(function (t, i) {
+                var id = "slot-" + i;
+                var input = document.createElement("input");
+                input.type = "radio"; input.name = "time"; input.value = t; input.id = id;
+                input.className = "btn-check"; input.required = true;
+                input.addEventListener("change", function () { confirmBtn.disabled = false; });
+                var label = document.createElement("label");
+                label.className = "btn btn-outline-primary"; label.htmlFor = id; label.textContent = t;
+                slots.appendChild(input); slots.appendChild(label);
+                if (t === preselected) { input.checked = true; confirmBtn.disabled = false; }
+            });
+        }
 
-</body>
-</html>
+        function load() {
+            if (!select.value) { return; }
+            fetch("{% url 'doctor_slots' doctor.id %}?date=" + encodeURIComponent(select.value), { credentials: "same-origin" })
+                .then(function (r) { return r.json(); })
+                .then(function (data) { render(data.success ? data.slots : []); })
+                .catch(function () { slots.innerHTML = '<span class="text-danger">Could not load times. Please try again.</span>'; });
+        }
+
+        select.addEventListener("change", function () { preselected = ""; load(); });
+        load();
+    })();
+</script>
+{% endblock %}

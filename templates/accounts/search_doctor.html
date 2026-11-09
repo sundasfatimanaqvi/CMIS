@@ -1,76 +1,49 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Doctor - Healio</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f0f8ff;
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            max-width: 800px;
-            margin: auto;
-            padding: 20px;
-            text-align: center;
-        }
-        .doctor-list {
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 10px;
-            background: white;
-        }
-        .doctor-card {
-            padding: 15px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            background-color: #fff;
-            text-align: center;
-        }
-        .doctor-card img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-        }
-        .book-btn {
-            margin-top: 10px;
-            padding: 8px 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .book-btn:hover {
-            background-color: #0056b3;
-        }
-    </style>
-</head>
-<body>
+{% extends 'accounts/base.html' %}
+{% block title %}Find a Doctor{% endblock %}
 
-    <div class="container">
-        <h2>Find a Doctor</h2>
-        <div class="doctor-list">
-            {% for doctor in doctors %}
-                <div class="doctor-card">
-                    <img src="{% static 'images/default-avatar.png' %}" alt="Doctor Avatar">
-                    <h3>Dr. {{ doctor.user.username }}</h3>
-                    <p>{{ doctor.specialization }}</p>
-                    <p><strong>Availability:</strong> {% if doctor.availability %} {{ doctor.availability }} {% else %} Not Set {% endif %}</p>
-                    <p><strong>Fee:</strong> $100</p>
-                    <a href="#" class="book-btn disabled" aria-disabled="true" title="Appointment booking is not available yet">Book Appointment</a>
-                </div>
-            {% empty %}
-                <p>No doctors available.</p>
-            {% endfor %}
+{% block content %}
+<div class="hl-page-head">
+    <h1 class="hl-page-title">Find a doctor</h1>
+    <p class="hl-page-sub">Search by name or specialization.</p>
+</div>
+
+<form method="get" class="hl-card mb-4">
+    <div class="input-group">
+        <label for="q" class="visually-hidden">Search doctors</label>
+        <input type="search" id="q" name="q" class="form-control" placeholder="e.g. Cardiology or Dr. Khan" value="{{ query }}">
+        <button class="btn btn-primary" type="submit">Search</button>
+        {% if query %}<a class="btn btn-outline-secondary" href="{% url 'search_doctor' %}">Clear</a>{% endif %}
+    </div>
+</form>
+
+<div class="row g-4">
+    {% for doctor in page %}
+    <div class="col-md-6 col-lg-4">
+        <div class="hl-card hl-doctor-card">
+            <img class="hl-avatar" src="{{ doctor.avatar_url }}" alt="">
+            <h3>Dr. {{ doctor.display_name }}</h3>
+            <span class="hl-chip mb-2">{{ doctor.specialization|default:"General Physician" }}</span>
+            <p class="text-muted mb-1"><strong>Hours:</strong> {{ doctor.availability }}</p>
+            <p class="text-muted mb-3"><strong>Fee:</strong> $100</p>
+            {% if is_patient %}
+                <a href="{% url 'book_appointment' doctor.id %}" class="btn btn-primary mt-auto w-100">Book appointment</a>
+            {% else %}
+                <span class="text-muted small mt-auto">Log in as a patient to book.</span>
+            {% endif %}
         </div>
     </div>
+    {% empty %}
+    <div class="col-12"><div class="hl-card hl-empty">No doctors found{% if query %} for "{{ query }}"{% endif %}.</div></div>
+    {% endfor %}
+</div>
 
-</body>
-</html>
+{% if page.has_other_pages %}
+<nav class="mt-4" aria-label="Doctor pages">
+    <ul class="pagination justify-content-center">
+        {% if page.has_previous %}<li class="page-item"><a class="page-link" href="?q={{ query|urlencode }}&page={{ page.previous_page_number }}">Previous</a></li>{% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ page.number }} of {{ page.paginator.num_pages }}</span></li>
+        {% if page.has_next %}<li class="page-item"><a class="page-link" href="?q={{ query|urlencode }}&page={{ page.next_page_number }}">Next</a></li>{% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

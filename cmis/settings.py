@@ -15,8 +15,21 @@ import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-print("DEBUG >> BASE_DIR =", BASE_DIR)
-print("DEBUG >> Template DIRS =", os.path.join(BASE_DIR, "templates"))
+
+
+def _load_env_file(path):
+    """Tiny .env loader (KEY=VALUE per line) so no extra dependency is needed."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_env_file(BASE_DIR / ".env")
 
 
 STATIC_URL = '/static/'
@@ -31,12 +44,15 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-g*53xq@h-swkbvdxp5ofkf_u_1yj8%)++x!3fe@k4l7ni4famh'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-dev-only-key-change-me',  # development fallback only
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
 
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -63,15 +79,12 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    "django.contrib.messages.middleware.MessageMiddleware", 
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'cmis.urls'
 
 
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 TEMPLATES = [
     {
@@ -99,7 +112,7 @@ DEBUG = True
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'cmis',  # Your database name
+        'NAME': os.environ.get('DB_NAME', 'cmis'),  # Your database name
         'USER': 'root',  # Your MySQL username
         # Override with the DB_PASSWORD environment variable on your machine
         'PASSWORD': os.environ.get('DB_PASSWORD', 'sundas'),
@@ -153,5 +166,12 @@ STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
+
+# Auth / messages
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+
+from django.contrib.messages import constants as _messages
+MESSAGE_TAGS = {_messages.ERROR: 'danger'}  # map to Bootstrap alert classes
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

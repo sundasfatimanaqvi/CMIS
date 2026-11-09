@@ -1,0 +1,67 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Laboratory{% endblock %}
+
+{% block content %}
+<div class="hl-page-head">
+    <h1 class="hl-page-title">Laboratory Dashboard</h1>
+    <p class="hl-page-sub">{{ pending_count }} test{{ pending_count|pluralize }} waiting to be completed.</p>
+</div>
+
+<form method="get" class="hl-card mb-4" style="max-width: 640px;">
+    <label for="patient_id" class="form-label">Filter by patient ID</label>
+    <div class="input-group">
+        <input type="text" id="patient_id" name="patient_id" class="form-control" value="{{ patient_id }}" placeholder="Leave empty to show all" autocomplete="off">
+        <button class="btn btn-primary" type="submit">Filter</button>
+        {% if patient_id %}<a class="btn btn-outline-secondary" href="{% url 'laboratory_dashboard' %}">Clear</a>{% endif %}
+    </div>
+</form>
+
+<div class="hl-card">
+    {% if tests %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead><tr><th>Test</th><th>Patient</th><th>Requested by</th><th>Date</th><th>Status</th><th>Completed</th></tr></thead>
+            <tbody>
+            {% for t in tests %}
+                <tr>
+                    <td>{{ t.test_name }}</td>
+                    <td>{{ t.patient.user.get_full_name|default:t.patient.user.username }}<br><code>{{ t.patient.patient_id }}</code></td>
+                    <td>{% if t.doctor %}Dr. {{ t.doctor.display_name }}{% else %}-{% endif %}</td>
+                    <td>{{ t.test_date|date:"M d, Y" }}</td>
+                    <td><span class="hl-badge {{ t.status|slugify }}" id="status-{{ t.id }}">{{ t.status }}</span></td>
+                    <td>
+                        <label class="hl-switch">
+                            <input type="checkbox" data-id="{{ t.id }}" aria-label="Completed: {{ t.test_name }}" {% if t.status == 'Completed' %}checked{% endif %}>
+                            <span class="hl-slider"></span>
+                        </label>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="hl-empty">No tests found.</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll("input[data-id]").forEach(function (box) {
+        box.addEventListener("change", function () {
+            var id = box.dataset.id;
+            Healio.postJSON("{% url 'toggle_test_status' 0 %}".replace(/0\/$/, id + "/")).then(function (data) {
+                if (!data.success) { throw new Error(data.error); }
+                var badge = document.getElementById("status-" + id);
+                badge.textContent = data.new_status;
+                badge.className = "hl-badge " + data.new_status.toLowerCase();
+                box.checked = data.new_status === "Completed";
+            }).catch(function (err) {
+                box.checked = !box.checked;
+                Healio.toast(err.message || "Failed to update status.", "danger");
+            });
+        });
+    });
+</script>
+{% endblock %}

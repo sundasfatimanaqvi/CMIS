@@ -1,273 +1,503 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.contrib.auth.forms import AuthenticationForm
-from .forms import RegistrationForm, PrescribeMedicineForm
-from .models import Patient, Doctor, Laboratory, Pharmacy, Prescription, MedicalTest, MedicalHistory
-from django.contrib.auth.models import User
-from django.contrib import messages
+import datetime
 import json
 
+from django import forms
+from django.contrib import messages
+from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_GET, require_POST
+
+from .decorators import (
+    doctor_required, get_role, laboratory_required, patient_required,
+    pharmacy_required, role_required,
+)
+from .forms import RegistrationForm
+from .models import (
+    Appointment, Doctor, Laboratory, MedicalHistory, MedicalTest, Patient,
+    Pharmacy, Prescription,
+)
+
+BOOKING_WINDOW_DAYS = 14
+MAX_PROFILE_PICTURE_BYTES = 2 * 1024 * 1024
 
 
-# Simple home view (for your home template)
+# --------------------------------------------------------------------------- #
+# Public pages
+# --------------------------------------------------------------------------- #
 def home(request):
     return render(request, 'accounts/home.html')
+
 
 def about(request):
     return render(request, 'accounts/about.html')
 
 
+# --------------------------------------------------------------------------- #
+# Authentication
+# --------------------------------------------------------------------------- #
+ROLE_MODELS = {
+    'patient': Patient,
+    'doctor': Doctor,
+    'laboratory': Laboratory,
+    'pharmacy': Pharmacy,
+}
+
+ROLE_DASHBOARDS = {
+    'doctor': 'doctor_dashboard',
+    'laboratory': 'laboratory_dashboard',
+    'pharmacy': 'pharmacy_dashboard',
+    'patient': 'patient_dashboard',
+}
+
 
 def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
     if request.method == "POST":
         form = RegistrationForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username']
-            email = form.cleaned_data['email']
-            password = form.cleaned_data['password1']
-            role = form.cleaned_data['role']
-
-            # ✅ Check if username already exists
-            if User.objects.filter(username=username).exists():
-                messages.error(request, "Username is already taken. Please choose another.")
-
-                print("MESSAGES DEBUG:", list(messages.get_messages(request)))
-
-                return render(request, "accounts/register.html", {"form": form})  # ✅ Keep form data and show error
-
-            # ✅ Create user
-            user = User.objects.create_user(username=username, email=email, password=password)
-            
-            # ✅ Assign user to correct role
-            if role == "patient":
-                Patient.objects.create(user=user)
-            elif role == "doctor":
-                Doctor.objects.create(user=user)
-            elif role == "laboratory":
-                Laboratory.objects.create(user=user)
-            elif role == "pharmacy":
-                Pharmacy.objects.create(user=user)
+            data = form.cleaned_data
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=data['username'],
+                    email=data['email'],
+                    password=data['password1'],
+                    first_name=data.get('first_name', ''),
+                    last_name=data.get('last_name', ''),
+                )
+                ROLE_MODELS[data['role']].objects.create(user=user)
 
             messages.success(request, "Registration successful! Please log in.")
-            return redirect("login")  
+            return redirect("login")
     else:
         form = RegistrationForm()
-
-
 
     return render(request, "accounts/register.html", {"form": form})
 
 
-
-
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
 
-            # Redirect based on the user's stored role
-            if Doctor.objects.filter(user=user).exists():
-                return redirect('doctor_dashboard')
-            elif Laboratory.objects.filter(user=user).exists():
-                return redirect('laboratory_dashboard')
-            elif Pharmacy.objects.filter(user=user).exists():
-                return redirect('pharmacy_dashboard')
-            elif Patient.objects.filter(user=user).exists():
-                return redirect('patient_dashboard')
-            else:
-                messages.error(request, "No role found for this user.")
-                return redirect('home')
-
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
+            return redirect('dashboard')
     else:
         form = AuthenticationForm()
-    
-    return render(request, 'accounts/login.html', {'form': form})
+
+    return render(request, 'accounts/login.html', {'form': form, 'next': request.GET.get('next', '')})
+
+
+@require_POST
+def logout_view(request):
+    logout(request)
+    messages.info(request, "You have been logged out.")
+    return redirect('login')
+
 
 @login_required
 def dashboard_redirect_view(request):
-    user = request.user
-    
-    if Doctor.objects.filter(user=user).exists():
-        return redirect('doctor_dashboard')
-    elif Laboratory.objects.filter(user=user).exists():
-        return redirect('laboratory_dashboard')
-    elif Pharmacy.objects.filter(user=user).exists():
-        return redirect('pharmacy_dashboard')
-    elif Patient.objects.filter(user=user).exists():
-        return redirect('patient_dashboard')
-    else:
-        messages.error(request, "No role found for this user.")
-        return redirect('home')
+    role = get_role(request.user)
+    if role:
+        return redirect(ROLE_DASHBOARDS[role])
+    messages.error(request, "No role found for this user.")
+    return redirect('home')
 
-@login_required
+
+# --------------------------------------------------------------------------- #
+# Doctor
+# --------------------------------------------------------------------------- #
+@doctor_required
 def doctor_dashboard(request):
-    # Dummy data for illustration; in a real app fetch from your Appointment model, etc.
-    appointments = []  # Replace with your query to fetch doctor's appointments
+    doctor = request.user.doctor
+    today = timezone.localdate()
+    tomorrow = today + datetime.timedelta(days=1)
+
+    appointments = doctor.appointments.select_related('patient__user')
+    active = appointments.exclude(status='Cancelled')
+
     context = {
-        'appointments': appointments,
-        'next_day_appointments': 0,
-        'today_patients': 0,
-        'total_appointments': 0,
+        'doctor': doctor,
+        'appointments': appointments.filter(date__gte=today).order_by('date', 'time'),
+        'next_day_appointments': active.filter(date=tomorrow).count(),
+        'today_patients': active.filter(date=today).count(),
+        'total_appointments': active.count(),
     }
     return render(request, 'accounts/doctor_dashboard.html', context)
 
 
+@doctor_required
+def doctor_profile(request):
+    doctor = request.user.doctor
 
-@login_required
-def patient_dashboard(request):
-    patient = get_object_or_404(Patient, user=request.user)
-    
-    # Fetch Prescriptions
-    prescriptions = Prescription.objects.filter(patient=patient).order_by('-date_prescribed')
+    if request.method == "POST":
+        user = doctor.user
+        errors = []
 
-    # Fetch Prescribed Tests (ordering by test_date instead of date_prescribed)
-    prescribed_tests = MedicalTest.objects.filter(patient=patient).order_by('-test_date')
+        username = request.POST.get("username", "").strip()
+        if not username:
+            errors.append("Username cannot be empty.")
+        elif User.objects.filter(username=username).exclude(pk=user.pk).exists():
+            errors.append("That username is already taken.")
 
-# Fetch Medical History
-    medical_history = MedicalHistory.objects.filter(patient=patient).order_by('-date_added')  # Assuming you have a date_added field
+        start = _parse_time(request.POST.get("start_time"))
+        end = _parse_time(request.POST.get("end_time"))
+        if request.POST.get("start_time") and start is None:
+            errors.append("Start time is not valid.")
+        if request.POST.get("end_time") and end is None:
+            errors.append("End time is not valid.")
+        start = start or doctor.working_hours_start
+        end = end or doctor.working_hours_end
+        if start >= end:
+            errors.append("Working hours must end after they start.")
 
-    context = {
-        'prescriptions': prescriptions,
-        'prescribed_tests': prescribed_tests,
-        'medical_history': medical_history,  # Add medical history to context
-    }
+        days = []
+        for chunk in request.POST.get("unavailable_days", "").split(","):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            try:
+                days.append(datetime.date.fromisoformat(chunk).isoformat())
+            except ValueError:
+                errors.append(f"'{chunk}' is not a valid date.")
 
-    return render(request, 'accounts/patient_dashboard.html', context)
+        picture = request.FILES.get("profile_picture")
+        if picture:
+            if picture.size > MAX_PROFILE_PICTURE_BYTES:
+                errors.append("Profile picture must be smaller than 2 MB.")
+            else:
+                try:
+                    forms.ImageField().clean(picture)
+                except forms.ValidationError:
+                    errors.append("Upload a valid image file.")
+
+        password = request.POST.get("password")
+        if password:
+            from django.contrib.auth.password_validation import validate_password
+            from django.core.exceptions import ValidationError
+            try:
+                validate_password(password, user)
+            except ValidationError as exc:
+                errors.extend(exc.messages)
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return redirect("doctor_profile")
+
+        user.username = username
+        if password:
+            user.set_password(password)
+        user.save()
+        if password:
+            update_session_auth_hash(request, user)
+
+        doctor.specialization = request.POST.get("specialization", doctor.specialization).strip()[:100]
+        doctor.working_hours_start = start
+        doctor.working_hours_end = end
+        doctor.unavailable_days = ",".join(sorted(set(days)))
+        if picture:
+            doctor.profile_picture = picture
+        doctor.save()
+
+        messages.success(request, "Profile updated successfully.")
+        return redirect("doctor_profile")
+
+    return render(request, "accounts/doctor_profile.html", {"doctor": doctor})
 
 
-@login_required
+def _parse_time(value):
+    if not value:
+        return None
+    for fmt in ("%H:%M", "%H:%M:%S"):
+        try:
+            return datetime.datetime.strptime(value, fmt).time()
+        except ValueError:
+            continue
+    return None
+
+
+@role_required('doctor', api=True)
+@require_GET
 def search_patient(request):
-    patient_id = request.GET.get('patient_id')
-    exists = Patient.objects.filter(patient_id=patient_id).exists()
+    patient_id = request.GET.get('patient_id', '').strip()
+    exists = bool(patient_id) and Patient.objects.filter(patient_id=patient_id).exists()
     return JsonResponse({'exists': exists})
 
 
-@login_required
+@doctor_required
 def patient_management(request, patient_id):
     patient = get_object_or_404(Patient, patient_id=patient_id)
-
-    # Ensure the logged-in user is a doctor
-    try:
-        doctor = request.user.doctor  
-    except Doctor.DoesNotExist:
-        return JsonResponse({"error": "Only doctors can manage patient records."}, status=403)
-
-    # Fetch existing data for the patient
-    prescriptions = Prescription.objects.filter(patient=patient)
-    tests = MedicalTest.objects.filter(patient=patient)
-    history_entries = MedicalHistory.objects.filter(patient=patient).order_by("-updated_at")
-
-    if request.method == "POST":
-        action = request.POST.get("action")
-
-        if action == "prescribe_medicine":
-
-            # Extract data from the request
-            medicine_name = request.POST.get("medicine_name")
-            dosage = request.POST.get("dosage")
-            instructions = request.POST.get("instructions")
-
-            #save data in database
-            if medicine_name and dosage and instructions:
-                Prescription.objects.create(
-                    patient=patient,
-                    doctor=doctor,  # ✅ Ensure doctor ID is saved
-                    medicine_name=medicine_name,
-                    dosage=dosage,
-                    instructions=instructions
-                )
-                return JsonResponse({"message": "Medicine prescribed successfully"}, status=200)
-        
-        elif action == "prescribe_test":
-            test_name = request.POST.get("test_name")
-
-            if test_name:
-                MedicalTest.objects.create(
-                    patient=patient,
-                    doctor=doctor,  # ✅ Ensure doctor ID is saved
-                    test_name=test_name
-                )
-                return JsonResponse({"message": "Test prescribed successfully"}, status=200)
-
-        elif action == "update_medical_history":
-            history_text = request.POST.get("history_text")
-
-            if history_text:
-                MedicalHistory.objects.create(
-                    patient=patient,
-                    doctor=doctor,  # ✅ Ensure doctor ID is saved
-                    history_text=history_text
-                )
-                return JsonResponse({"message": "Medical history updated successfully"}, status=200)
-
     return render(request, "accounts/patient_management.html", {
         "patient": patient,
-        "prescriptions": prescriptions,
-        "tests": tests,
+        "prescriptions": Prescription.objects.filter(patient=patient).select_related('doctor').order_by('-date_prescribed'),
+        "tests": MedicalTest.objects.filter(patient=patient).select_related('doctor__user').order_by('-test_date'),
+        "history_entries": MedicalHistory.objects.filter(patient=patient).select_related('doctor').order_by("-updated_at"),
+    })
+
+
+def _json_body(request):
+    try:
+        data = json.loads(request.body.decode('utf-8') or '{}')
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _clean_text(data, key, max_length):
+    value = data.get(key)
+    if not isinstance(value, str):
+        return ''
+    return value.strip()[:max_length]
+
+
+@role_required('doctor', api=True)
+@require_POST
+def prescribe_medicine(request, patient_id):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"success": False, "error": "Invalid JSON format."}, status=400)
+
+    patient = get_object_or_404(Patient, patient_id=patient_id)
+    medicine_name = _clean_text(data, "medicine_name", 255)
+    dosage = _clean_text(data, "dosage", 100)
+    instructions = _clean_text(data, "instructions", 2000)
+    if not (medicine_name and dosage and instructions):
+        return JsonResponse({"success": False, "error": "All fields are required."}, status=400)
+
+    Prescription.objects.create(
+        patient=patient,
+        doctor=request.user,
+        medicine_name=medicine_name,
+        dosage=dosage,
+        instructions=instructions,
+    )
+    return JsonResponse({"success": True, "message": "Prescription saved successfully!"})
+
+
+@role_required('doctor', api=True)
+@require_POST
+def prescribe_test(request, patient_id):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"success": False, "error": "Invalid JSON format."}, status=400)
+
+    patient = get_object_or_404(Patient, patient_id=patient_id)
+    test_name = _clean_text(data, "test_name", 255)
+    if not test_name:
+        return JsonResponse({"success": False, "error": "Test name is required."}, status=400)
+
+    test = MedicalTest.objects.create(
+        patient=patient,
+        doctor=request.user.doctor,
+        test_name=test_name,
+        status="Pending",
+    )
+    return JsonResponse({"success": True, "message": "Test prescribed successfully!", "test_id": test.id})
+
+
+@role_required('doctor', api=True)
+@require_POST
+def add_medical_history(request, patient_id):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"success": False, "error": "Invalid JSON format."}, status=400)
+
+    patient = get_object_or_404(Patient, patient_id=patient_id)
+    details = _clean_text(data, "details", 5000)
+    if not details:
+        return JsonResponse({"success": False, "error": "Details are required."}, status=400)
+
+    MedicalHistory.objects.create(patient=patient, doctor=request.user, details=details)
+    return JsonResponse({"success": True, "message": "Medical history added successfully!"})
+
+
+@login_required
+def view_medical_history(request, patient_id):
+    patient = get_object_or_404(Patient, patient_id=patient_id)
+    role = get_role(request.user)
+    # Patients may only read their own record; doctors may read any patient's.
+    if role == 'patient' and request.user.patient != patient:
+        messages.error(request, "You can only view your own medical history.")
+        return redirect('dashboard')
+    if role not in ('patient', 'doctor'):
+        messages.error(request, "You do not have access to medical records.")
+        return redirect('dashboard')
+
+    history_entries = MedicalHistory.objects.filter(patient=patient).select_related('doctor').order_by("-updated_at")
+    return render(request, "accounts/medical_history.html", {
+        "patient": patient,
         "history_entries": history_entries,
     })
 
 
+# --------------------------------------------------------------------------- #
+# Patient: dashboard, doctor search, appointments
+# --------------------------------------------------------------------------- #
+@patient_required
+def patient_dashboard(request):
+    patient = request.user.patient
+    today = timezone.localdate()
+    appointments = patient.appointments.select_related('doctor__user')
+
+    context = {
+        'patient': patient,
+        'upcoming_appointments': appointments.filter(date__gte=today, status='Scheduled'),
+        'past_appointments': appointments.exclude(date__gte=today, status='Scheduled').order_by('-date', '-time'),
+        'prescriptions': Prescription.objects.filter(patient=patient).select_related('doctor').order_by('-date_prescribed'),
+        'prescribed_tests': MedicalTest.objects.filter(patient=patient).select_related('doctor__user').order_by('-test_date'),
+        'medical_history': MedicalHistory.objects.filter(patient=patient).select_related('doctor').order_by('-date_added'),
+    }
+    return render(request, 'accounts/patient_dashboard.html', context)
+
+
 @login_required
-def logout_view(request):
-    logout(request)
-    return redirect('login')
-
-
 def search_doctor(request):
-    doctors = Doctor.objects.all()
-    return render(request, "accounts/search_doctor.html", {"doctors": doctors})
+    query = request.GET.get('q', '').strip()
+    doctors = Doctor.objects.select_related('user').order_by('user__first_name', 'user__username')
+    if query:
+        doctors = doctors.filter(
+            Q(user__username__icontains=query)
+            | Q(user__first_name__icontains=query)
+            | Q(user__last_name__icontains=query)
+            | Q(specialization__icontains=query)
+        )
+    page = Paginator(doctors, 9).get_page(request.GET.get('page'))
+    return render(request, "accounts/search_doctor.html", {
+        "page": page,
+        "query": query,
+        "is_patient": get_role(request.user) == 'patient',
+    })
 
 
-@login_required
-def doctor_profile(request):
-    doctor = request.user.doctor  
+def _slots_for_day(doctor, day):
+    """Free slots for `day`, hiding slots that are already in the past today."""
+    slots = doctor.free_slots(day)
+    now = timezone.localtime()
+    if day == now.date():
+        slots = [t for t in slots if t > now.time()]
+    return slots
+
+
+def _bookable_dates(doctor):
+    today = timezone.localdate()
+    days = [today + datetime.timedelta(days=i) for i in range(BOOKING_WINDOW_DAYS + 1)]
+    return [d for d in days if _slots_for_day(doctor, d)]
+
+
+@role_required('patient', api=True)
+@require_GET
+def doctor_slots(request, doctor_id):
+    doctor = get_object_or_404(Doctor, pk=doctor_id)
+    try:
+        day = datetime.date.fromisoformat(request.GET.get('date', ''))
+    except ValueError:
+        return JsonResponse({"success": False, "error": "Invalid date."}, status=400)
+    return JsonResponse({"success": True, "slots": [t.strftime('%H:%M') for t in _slots_for_day(doctor, day)]})
+
+
+@patient_required
+def book_appointment(request, doctor_id):
+    doctor = get_object_or_404(Doctor.objects.select_related('user'), pk=doctor_id)
+    patient = request.user.patient
+
     if request.method == "POST":
-        username = request.POST.get("username", doctor.user.username).strip()
-        if username:
-            doctor.user.username = username
-        else:
-            messages.error(request, "Username cannot be empty.")
-            return redirect("doctor_profile")
+        reason = request.POST.get("description", "").strip()[:1000]
+        try:
+            day = datetime.date.fromisoformat(request.POST.get("date", ""))
+        except ValueError:
+            day = None
+        slot = _parse_time(request.POST.get("time"))
 
-        if request.POST.get("password"):
-            doctor.user.set_password(request.POST["password"])
+        error = None
+        today = timezone.localdate()
+        if day is None or slot is None:
+            error = "Please choose a date and a time."
+        elif not reason:
+            error = "Please tell the doctor the reason for your visit."
+        elif day < today or day > today + datetime.timedelta(days=BOOKING_WINDOW_DAYS):
+            error = f"Appointments can be booked up to {BOOKING_WINDOW_DAYS} days ahead."
 
-        if request.FILES.get("profile_picture"):
-            doctor.profile_picture = request.FILES["profile_picture"]
+        if error is None:
+            with transaction.atomic():
+                # Lock the doctor row so two patients cannot take the same slot.
+                Doctor.objects.select_for_update().get(pk=doctor.pk)
+                if slot not in _slots_for_day(doctor, day):
+                    error = "That time is no longer available. Please pick another one."
+                else:
+                    Appointment.objects.create(
+                        patient=patient, doctor=doctor, date=day, time=slot, reason=reason,
+                    )
 
-        start_time = request.POST.get("start_time")
-        end_time = request.POST.get("end_time")
-        unavailable_days = request.POST.get("unavailable_days", "")
+        if error is None:
+            messages.success(request, f"Appointment booked with Dr. {doctor.display_name} on {day:%b %d, %Y} at {slot:%H:%M}.")
+            return redirect('patient_dashboard')
+        messages.error(request, error)
 
-        if start_time:
-            doctor.working_hours_start = start_time
-        if end_time:
-            doctor.working_hours_end = end_time
-        if unavailable_days:
-            doctor.unavailable_dates = {"unavailable_days": unavailable_days.split(",")}
-        
-        doctor.user.save()
-        doctor.save()
-        messages.success(request, "Profile updated successfully.")
-        return redirect("doctor_profile")
-    
-    return render(request, "accounts/doctor_profile.html", {"doctor": doctor})
+    return render(request, "accounts/book_appointment.html", {
+        "doctor": doctor,
+        "patient": patient,
+        "available_dates": [d.isoformat() for d in _bookable_dates(doctor)],
+        "selected": {
+            "date": request.POST.get("date", ""),
+            "time": request.POST.get("time", ""),
+            "description": request.POST.get("description", ""),
+        },
+    })
 
-
-from django.views.decorators.http import require_POST
 
 @login_required
+@require_POST
+def update_appointment(request, appointment_id):
+    appointment = get_object_or_404(Appointment, pk=appointment_id)
+    action = request.POST.get("action")
+    role = get_role(request.user)
+
+    if role == 'patient' and appointment.patient.user_id == request.user.id and action == 'cancel':
+        new_status = 'Cancelled'
+    elif role == 'doctor' and appointment.doctor.user_id == request.user.id and action in ('cancel', 'complete'):
+        new_status = 'Cancelled' if action == 'cancel' else 'Completed'
+    else:
+        messages.error(request, "You cannot change this appointment.")
+        return redirect('dashboard')
+
+    if appointment.status != 'Scheduled':
+        messages.error(request, "Only scheduled appointments can be changed.")
+    else:
+        appointment.status = new_status
+        appointment.save(update_fields=['status'])
+        messages.success(request, f"Appointment marked as {new_status.lower()}.")
+    return redirect('dashboard')
+
+
+# --------------------------------------------------------------------------- #
+# Pharmacy
+# --------------------------------------------------------------------------- #
+@pharmacy_required
 def pharmacy_dashboard(request):
     return render(request, 'accounts/pharmacy_dashboard.html')
 
-@login_required
+
+@pharmacy_required
 def pharmacy_lookup(request):
-    patient_id = request.POST.get("patient_id") or request.GET.get("patient_id")
+    patient_id = (request.POST.get("patient_id") or request.GET.get("patient_id") or "").strip()
     if not patient_id:
         return redirect('pharmacy_dashboard')
 
@@ -276,162 +506,43 @@ def pharmacy_lookup(request):
         messages.error(request, "No patient found with this ID.")
         return redirect('pharmacy_dashboard')
 
-    prescriptions = Prescription.objects.filter(patient=patient)
+    prescriptions = Prescription.objects.filter(patient=patient).select_related('doctor').order_by('-date_prescribed')
     return render(request, "accounts/pharmacy_lookup.html", {
         "patient": patient,
         "patient_id": patient_id,
-        "prescriptions": prescriptions
+        "prescriptions": prescriptions,
     })
 
-@login_required
+
+@role_required('pharmacy', api=True)
+@require_POST
 def toggle_prescription_status(request, prescription_id):
     prescription = get_object_or_404(Prescription, id=prescription_id)
-    if prescription.status == "Fulfilled":
-        prescription.status = "Not Fulfilled"
-    else:
-        prescription.status = "Fulfilled"
-    prescription.save()
+    prescription.status = "Not Fulfilled" if prescription.status == "Fulfilled" else "Fulfilled"
+    prescription.save(update_fields=['status'])
     return JsonResponse({"success": True, "new_status": prescription.status})
 
 
+# --------------------------------------------------------------------------- #
+# Laboratory
+# --------------------------------------------------------------------------- #
+@laboratory_required
+def laboratory_dashboard(request):
+    tests = MedicalTest.objects.select_related('patient__user', 'doctor__user').order_by('status', '-test_date')
+    patient_id = request.GET.get('patient_id', '').strip()
+    if patient_id:
+        tests = tests.filter(patient__patient_id=patient_id)
+    return render(request, 'accounts/laboratory_dashboard.html', {
+        'tests': tests[:100],
+        'patient_id': patient_id,
+        'pending_count': MedicalTest.objects.filter(status='Pending').count(),
+    })
 
 
-
-
-import json
-
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-import json
-from accounts.models import Prescription, Patient, Doctor
-
-
-
-@csrf_exempt
-def prescribe_medicine(request, patient_id):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            print("Received data:", data)  # Debugging
-
-            doctor_id = data.get("doctor_id")
-            medicine_name = data.get("medicine_name")
-            dosage = data.get("dosage")
-            instructions = data.get("instructions")
-
-            # Get Patient and Doctor objects
-            patient = get_object_or_404(Patient, patient_id=patient_id)
-            doctor = get_object_or_404(Doctor, id=doctor_id)
-
-            # Validate input fields
-            if not all([medicine_name, dosage, instructions]):
-                return JsonResponse({"success": False, "error": "All fields are required."}, status=400)
-
-            # Save to database correctly (Assign the User instance)
-            Prescription.objects.create(
-                patient=patient,
-                doctor=doctor.user,  # ✅ Assign User instance instead of Doctor instance
-                medicine_name=medicine_name,
-                dosage=dosage,
-                instructions=instructions
-            )
-
-            return JsonResponse({"success": True, "message": "Prescription saved successfully!"})
-        
-        except Exception as e:
-            print(f"Error: {str(e)}")  # Debugging
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
-
-    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
-
-
-import json
-
-
-def prescribe_test(request, patient_id):
-    if request.method == "POST":
-        try:
-            raw_body = request.body.decode("utf-8")
-            print("Raw Request Body:", raw_body)  # Debugging
-
-            if not raw_body:
-                return JsonResponse({"success": False, "error": "Empty request body"}, status=400)
-
-            data = json.loads(raw_body)
-
-            # Required fields check
-            test_name = data.get("test_name")
-            doctor_id = data.get("doctor_id")
-
-            if not test_name or not doctor_id:
-                return JsonResponse({"success": False, "error": "Missing required fields"}, status=400)
-
-            # Patient and Doctor objects fetch karna
-            patient = get_object_or_404(Patient, patient_id=patient_id)
-            doctor = get_object_or_404(Doctor, id=doctor_id)
-
-            # Test record save karna
-            test = MedicalTest.objects.create(
-                patient=patient,
-                doctor=doctor,
-                test_name=test_name,
-                status="Pending"
-            )
-
-            return JsonResponse({"success": True, "message": "Test prescribed successfully!", "test_id": test.id})
-
-        except json.JSONDecodeError as e:
-            print("JSON Decode Error:", str(e))  # Debugging
-            return JsonResponse({"success": False, "error": "Invalid JSON format"}, status=400)
-
-    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
-
-
-def get_patient_tests(request, patient_id):
-    try:
-        patient = get_object_or_404(Patient, id=patient_id)
-        tests = MedicalTest.objects.filter(patient=patient).values("test_name", "status", "test_date")
-
-        return JsonResponse({"success": True, "tests": list(tests)})
-    
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
-
-
-
-import json
-from django.http import JsonResponse
-
-@csrf_exempt
-def add_medical_history(request, patient_id):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-
-            # Fetch the patient without converting patient_id to int
-            patient = Patient.objects.get(patient_id=patient_id)  
-            doctor = request.user  
-
-            MedicalHistory.objects.create(
-                patient=patient,
-                doctor=doctor,
-                details=data.get("details")
-            )
-
-            return JsonResponse({"success": True, "message": "Medical history added successfully!"})
-        except Patient.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Patient not found"}, status=400)
-        except User.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Doctor not found"}, status=400)
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
-
-    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
-
-@login_required
-def view_medical_history(request, patient_id):
-    patient = get_object_or_404(Patient, patient_id=patient_id)
-    history_entries = MedicalHistory.objects.filter(patient=patient).order_by("-updated_at")
-
-    return render(request, "accounts/medical_history.html", {"patient": patient, "history_entries": history_entries})
+@role_required('laboratory', api=True)
+@require_POST
+def toggle_test_status(request, test_id):
+    test = get_object_or_404(MedicalTest, pk=test_id)
+    test.status = "Pending" if test.status == "Completed" else "Completed"
+    test.save(update_fields=['status'])
+    return JsonResponse({"success": True, "new_status": test.status})

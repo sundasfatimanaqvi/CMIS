@@ -1,0 +1,9 @@
+{% comment %}Expects `items` (MedicalHistory queryset){% endcomment %}
+{% for h in items %}
+<div class="hl-record">
+    <div class="meta mb-1">{{ h.date_added|date:"M d, Y" }} &middot; Dr. {{ h.doctor.get_full_name|default:h.doctor.username }}</div>
+    <div>{{ h.details|linebreaksbr }}</div>
+</div>
+{% empty %}
+<div class="hl-empty">No medical history recorded yet.</div>
+{% endfor %}

@@ -1,0 +1,13 @@
+{% extends 'accounts/base.html' %}
+{% block title %}Medical History{% endblock %}
+
+{% block content %}
+<div class="hl-page-head">
+    <a href="{% url 'dashboard' %}" class="small">&larr; Back to dashboard</a>
+    <h1 class="hl-page-title mt-1">Medical history</h1>
+    <p class="hl-page-sub">{{ patient.user.get_full_name|default:patient.user.username }} &middot; ID <code>{{ patient.patient_id }}</code></p>
+</div>
+<div class="hl-card">
+    {% include "accounts/partials/history.html" with items=history_entries %}
+</div>
+{% endblock %}

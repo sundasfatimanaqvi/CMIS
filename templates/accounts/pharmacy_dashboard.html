@@ -1,13 +1,17 @@
-<!-- templates/accounts/pharmacy_dashboard.html -->
 {% extends 'accounts/base.html' %}
+{% block title %}Pharmacy Portal{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <h2 class="mb-4">Pharmacy Portal</h2>
-    <form method="GET" action="{% url 'pharmacy_lookup' %}">
-        <div class="input-group mb-3">
-            <input type="text" name="patient_id" class="form-control" placeholder="Enter Patient ID" required>
-            <button class="btn btn-primary" type="submit">Search</button>
-        </div>
-    </form>
+<div class="hl-page-head">
+    <h1 class="hl-page-title">Pharmacy Portal</h1>
+    <p class="hl-page-sub">Look up a patient's prescriptions and mark them as fulfilled.</p>
 </div>
+
+<form method="get" action="{% url 'pharmacy_lookup' %}" class="hl-card" style="max-width: 640px;">
+    <label for="patient_id" class="form-label">Patient ID</label>
+    <div class="input-group">
+        <input type="text" id="patient_id" name="patient_id" class="form-control" placeholder="Enter patient ID" autocomplete="off" required autofocus>
+        <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+</form>
 {% endblock %}

@@ -1,255 +1,110 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doctor Dashboard - Healio</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f8ff;
-            margin: 0;
-            padding: 0;
-        }
+{% extends 'accounts/base.html' %}
+{% block title %}Doctor Dashboard{% endblock %}
 
-        .nav-links a {
-            margin-left: 20px;
-            color: black;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .nav-links a:hover {
-            color: #007bff;
-        }
-        .dashboard-header {
-            /* background-color: #007bff; */
-            color: black;
-            padding: 15px;
-            text-align: center;
-            font-size: 35px;
-            font-weight: bold;
-        }
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            padding: 2px;
-        }
-        .sidebar {
-            width: 280px;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-        .avatar {
-            width: 100px;
-            height: 100px;
-            background-color: #ddd;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .doctor-info {
-            margin-top: 15px;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .sidebar-btn {
-            margin-top: 15px;
-            background-color: #007bff;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            display: block;
-            text-decoration: none;
-            font-weight: bold;
-            width: 100%; /* Ensure both buttons have the same width */
-            text-align: center; /* Center the text */
-            transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth hover animation */
-        }
-        .sidebar-btn:hover {
-            background-color: #0056b3; /* Darker blue on hover */
-            transform: scale(1.05); /* Slightly enlarge the button on hover */
-        }
-        .dashboard-content {
-            flex: 1;
-            margin-left: 20px;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        .stats-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .stat-box {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            flex: 1;
-            margin: 10px;
-        }
-        .table {
-            width: 100%;
-            margin-top: 15px;
-            border-collapse: collapse;
-        }
-        .table, th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
-        th {
-            background-color: #007bff;
-            color: white;
-        }
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
-            .sidebar {
-                width: 100%;
-                margin-bottom: 20px;
-            }
-            .dashboard-content {
-                margin-left: 0;
-            }
-            .stats-container {
-                flex-direction: column;
-            }
-        }
+{% block content %}
+<div class="hl-page-head">
+    <h1 class="hl-page-title">Doctor Dashboard</h1>
+    <p class="hl-page-sub">Your schedule and patients.</p>
+</div>
 
-        .footer {
-            background-color: #007bff;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-        }
-    </style>
-</head>
-<body>
+<div class="hl-dash">
+    <aside class="hl-card hl-profile">
+        <img class="hl-avatar-lg" src="{{ doctor.avatar_url }}" alt="Profile picture">
+        <h2>Dr. {{ doctor.display_name }}</h2>
+        <span class="hl-chip">{{ doctor.specialization|default:"General Physician" }}</span>
+        <p class="text-muted small mt-2 mb-1">Hours {{ doctor.availability }}</p>
+        <a href="{% url 'doctor_profile' %}" class="btn btn-outline-primary">Edit profile &amp; schedule</a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#searchPatientModal" type="button">Search patient ID</button>
+    </aside>
 
-    <!-- <div class="header">
-        <h1>Healio</h1>
-        <div class="nav-links">
-            <a href="#">Home</a>
-        </div>
-    </div> -->
-
-    {%include "navbar.html"%}
-
-    <div class="dashboard-header">Doctor Dashboard</div>
-
-    <div class="container">
-        <div class="sidebar">
-            {% if request.user.doctor.profile_picture %}
-                <img src="{{ request.user.doctor.profile_picture.url }}" alt="Profile Picture" class="avatar">
-            {% else %}
-                <div class="avatar"></div>  <!-- fallback if no image -->
-            {% endif %}
-            <div class="doctor-info">Dr. {{ request.user.username }}</div>
-            <a href="{% url 'doctor_profile' %}" class="sidebar-btn">Profile</a>
-            <button class="sidebar-btn" data-bs-toggle="modal" data-bs-target="#searchPatientModal">Search Patient ID</button>
+    <section>
+        <div class="hl-stats">
+            <div class="hl-stat"><div class="label">Tomorrow</div><div class="value">{{ next_day_appointments }}</div></div>
+            <div class="hl-stat"><div class="label">Today's patients</div><div class="value">{{ today_patients }}</div></div>
+            <div class="hl-stat"><div class="label">Total appointments</div><div class="value">{{ total_appointments }}</div></div>
         </div>
 
-        <div class="dashboard-content">
-            <div class="stats-container">
-                <div class="stat-box">
-                    <h2>Next Day Appointment</h2>
-                    <p><strong>{{ next_day_appointments|default:0 }}</strong></p>
-                </div>
-                <div class="stat-box">
-                    <h2>Today’s Patients</h2>
-                    <p><strong>{{ today_patients|default:0 }}</strong></p>
-                </div>
-                <div class="stat-box">
-                    <h2>Total Appointments</h2>
-                    <p><strong>{{ total_appointments|default:0 }}</strong></p>
-                </div>
-            </div>
-
-            <h3>Patient Appointments</h3>
-            <table class="table">
-                <tr>
-                    <th>Patient Name</th>
-                    <th>Appt Date</th>
-                    <th>Appt Time</th>
-                    <th>Status</th>
-                </tr>
-                {% if appointments %}
-                    {% for appointment in appointments %}
-                    <tr>
-                        <td>{{ appointment.patient.user.get_full_name|default:appointment.patient.user.username }}</td>
-                        <td>{{ appointment.date }}</td>
-                        <td>{{ appointment.time }}</td>
-                        <td>{{ appointment.status }}</td>
-                    </tr>
+        <div class="hl-card">
+            <h2 class="h5 mb-3">Upcoming appointments</h2>
+            {% if appointments %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+                    <tbody>
+                    {% for a in appointments %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'patient_management' a.patient.patient_id %}">{{ a.patient.user.get_full_name|default:a.patient.user.username }}</a>
+                            </td>
+                            <td>{{ a.date|date:"M d, Y" }}</td>
+                            <td>{{ a.time|time:"H:i" }}</td>
+                            <td>{{ a.reason|truncatechars:50 }}</td>
+                            <td><span class="hl-badge {{ a.status|slugify }}">{{ a.status }}</span></td>
+                            <td class="text-end text-nowrap">
+                                {% if a.status == 'Scheduled' %}
+                                <form method="post" action="{% url 'update_appointment' a.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="complete">
+                                    <button class="btn btn-sm btn-outline-success" type="submit">Complete</button>
+                                </form>
+                                <form method="post" action="{% url 'update_appointment' a.id %}" class="d-inline" onsubmit="return confirm('Cancel this appointment?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="cancel">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Cancel</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
                     {% endfor %}
-                {% else %}
-                    <tr><td colspan="4" style="text-align:center;">No Appointments</td></tr>
-                {% endif %}
-            </table>
-        </div>
-    </div>
-
-    <!-- Search Patient Modal -->
-    <div class="modal fade" id="searchPatientModal" tabindex="-1" aria-labelledby="searchPatientModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="searchPatientModalLabel">Search Patient ID</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="text" id="patientID" class="form-control" placeholder="Enter Patient ID">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="searchPatient()">Search</button>
-                </div>
+                    </tbody>
+                </table>
             </div>
+            {% else %}
+            <div class="hl-empty">No upcoming appointments.</div>
+            {% endif %}
         </div>
-    </div>
+    </section>
+</div>
 
-    <script>
-        function searchPatient() {
-            let patientID = document.getElementById('patientID').value.trim();
-            if (patientID === "") {
-                alert("Please enter a valid Patient ID");
-                return;
-            }
-            $.ajax({
-                url: "{% url 'search_patient' %}",
-                type: "GET",
-                data: { patient_id: patientID },
-                success: function(response) {
-                    if (response.exists) {
-                        window.location.href = `/patient_management/${patientID}/`;
-                    } else {
-                        alert("Patient not found. Please enter a valid Patient ID.");
-                    }
-                },
-                error: function() {
-                    alert("An error occurred. Please try again.");
+<div class="modal fade" id="searchPatientModal" tabindex="-1" aria-labelledby="searchPatientLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" id="searchPatientForm">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="searchPatientLabel">Search patient ID</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="patientID" class="form-label">Patient ID</label>
+                <input type="text" id="patientID" class="form-control" placeholder="e.g. 3fa85f64" autocomplete="off" required>
+                <div class="hl-field-error" id="patientError" role="alert"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById("searchPatientForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+        var id = document.getElementById("patientID").value.trim();
+        var error = document.getElementById("patientError");
+        error.textContent = "";
+        if (!id) { return; }
+        fetch("{% url 'search_patient' %}?patient_id=" + encodeURIComponent(id), { credentials: "same-origin" })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.exists) {
+                    window.location.href = "{% url 'patient_management' 'PID' %}".replace("PID", encodeURIComponent(id));
+                } else {
+                    error.textContent = "Patient not found. Please check the ID and try again.";
                 }
-            });
-        }
-    </script>
-
-    <!-- Footer -->
-    <div class="footer">
-        <p>Contact Us: +92 12345 | © 2025 Healio. All Rights Reserved.</p>
-    </div>
-</body>
-</html>
+            })
+            .catch(function () { error.textContent = "An error occurred. Please try again."; });
+    });
+</script>
+{% endblock %}

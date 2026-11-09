@@ -1,0 +1,15 @@
+{% comment %}Expects `items` (MedicalTest queryset){% endcomment %}
+{% for t in items %}
+<div class="hl-record">
+    <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+        <strong>{{ t.test_name }}</strong>
+        <span class="hl-badge {{ t.status|slugify }}">{{ t.status }}</span>
+    </div>
+    <dl>
+        <dt>Prescribed by</dt><dd>{% if t.doctor %}Dr. {{ t.doctor.display_name }}{% else %}-{% endif %}</dd>
+        <dt>Date</dt><dd>{{ t.test_date|date:"M d, Y" }}</dd>
+    </dl>
+</div>
+{% empty %}
+<div class="hl-empty">No tests prescribed yet.</div>
+{% endfor %}

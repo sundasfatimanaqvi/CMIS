@@ -1,96 +1,59 @@
-<!-- templates/accounts/pharmacy_lookup.html -->
 {% extends 'accounts/base.html' %}
+{% block title %}Prescriptions{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <h3>Prescriptions for Patient ID: <strong>{{ patient_id }}</strong></h3>
-    
-    {% if prescriptions %}
-    <table class="table table-bordered mt-3">
-        <thead>
-            <tr>
-                <th>Medicine</th>
-                <th>Dosage</th>
-                <th>Instructions</th>
-                <th>Status</th>
-                <th>Toggle</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for prescription in prescriptions %}
-            <tr>
-                <td>{{ prescription.medicine_name }}</td>
-                <td>{{ prescription.dosage }}</td>
-                <td>{{ prescription.instructions }}</td>
-                <td id="status-{{ prescription.id }}">{{ prescription.status }}</td>
-                <td>
-                    <label class="switch">
-                        <input type="checkbox" onchange="toggleStatus({{ prescription.id }})"
-                            {% if prescription.status == 'Fulfilled' %} checked {% endif %}>
-                        <span class="slider round"></span>
-                    </label>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>No prescriptions found for this patient.</p>
-    {% endif %}
+<div class="hl-page-head">
+    <a href="{% url 'pharmacy_dashboard' %}" class="small">&larr; New search</a>
+    <h1 class="hl-page-title mt-1">Prescriptions for {{ patient.user.get_full_name|default:patient.user.username }}</h1>
+    <p class="hl-page-sub">Patient ID <code>{{ patient_id }}</code></p>
 </div>
 
-<!-- Toggle switch CSS -->
-<style>
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 24px;
-}
-.switch input { display: none; }
-.slider {
-    position: absolute;
-    cursor: pointer;
-    background-color: #ccc;
-    border-radius: 24px;
-    top: 0; left: 0; right: 0; bottom: 0;
-    transition: .4s;
-}
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 18px; width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-}
-input:checked + .slider {
-    background-color: #28a745;
-}
-input:checked + .slider:before {
-    transform: translateX(26px);
-}
-</style>
+<div class="hl-card">
+    {% if prescriptions %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead><tr><th>Medicine</th><th>Dosage</th><th>Instructions</th><th>Prescribed</th><th>Status</th><th>Fulfilled</th></tr></thead>
+            <tbody>
+            {% for p in prescriptions %}
+                <tr>
+                    <td>{{ p.medicine_name }}</td>
+                    <td>{{ p.dosage }}</td>
+                    <td>{{ p.instructions }}</td>
+                    <td>{{ p.date_prescribed|date:"M d, Y" }}</td>
+                    <td><span class="hl-badge {{ p.status|slugify }}" id="status-{{ p.id }}">{{ p.status }}</span></td>
+                    <td>
+                        <label class="hl-switch" title="Toggle fulfilled">
+                            <input type="checkbox" data-id="{{ p.id }}" aria-label="Fulfilled: {{ p.medicine_name }}" {% if p.status == 'Fulfilled' %}checked{% endif %}>
+                            <span class="hl-slider"></span>
+                        </label>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="hl-empty">No prescriptions found for this patient.</div>
+    {% endif %}
+</div>
+{% endblock %}
 
-<!-- JavaScript for toggling -->
+{% block scripts %}
 <script>
-function toggleStatus(prescriptionId) {
-    fetch(`/pharmacy/toggle/${prescriptionId}/`, {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": "{{ csrf_token }}",
-            "Content-Type": "application/json"
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById(`status-${prescriptionId}`).innerText = data.new_status;
-    })
-    .catch(error => {
-        console.error('Error updating status:', error);
-        alert("Failed to update status.");
+    document.querySelectorAll("input[data-id]").forEach(function (box) {
+        box.addEventListener("change", function () {
+            var id = box.dataset.id;
+            Healio.postJSON("{% url 'toggle_prescription_status' 0 %}".replace(/0\/$/, id + "/")).then(function (data) {
+                if (!data.success) { throw new Error(data.error); }
+                var badge = document.getElementById("status-" + id);
+                badge.textContent = data.new_status;
+                badge.className = "hl-badge " + data.new_status.toLowerCase().replace(/\s+/g, "-");
+                box.checked = data.new_status === "Fulfilled";
+            }).catch(function (err) {
+                box.checked = !box.checked;
+                Healio.toast(err.message || "Failed to update status.", "danger");
+            });
+        });
     });
-}
 </script>
 {% endblock %}

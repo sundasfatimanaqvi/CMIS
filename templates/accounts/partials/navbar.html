@@ -1,0 +1,30 @@
+<nav class="navbar navbar-expand-lg hl-nav" aria-label="Main navigation">
+    <div class="container">
+        <a class="navbar-brand" href="{% url 'home' %}">Heal<span>io</span></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#hlNavMenu"
+                aria-controls="hlNavMenu" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-end" id="hlNavMenu">
+            <ul class="navbar-nav align-items-lg-center gap-lg-1">
+                <li class="nav-item"><a class="nav-link" href="{% url 'about' %}">About Us</a></li>
+                {% if user.is_authenticated %}
+                    {% if user.patient %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'search_doctor' %}">Find a Doctor</a></li>
+                    {% endif %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="nav-item d-none d-lg-block"><span class="navbar-text text-white-50 px-2">{{ user.get_full_name|default:user.username }}</span></li>
+                    <li class="nav-item">
+                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-nav-outline btn-sm ms-lg-2 mt-2 mt-lg-0">Logout</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                    <li class="nav-item"><a class="btn btn-nav-outline btn-sm ms-lg-2 mt-2 mt-lg-0" href="{% url 'register' %}">Sign up</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>

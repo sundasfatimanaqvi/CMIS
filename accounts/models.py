@@ -1,15 +1,13 @@
 import uuid
 from django.db import models
 from django.contrib.auth.models import User
-from django.shortcuts import render
+import datetime
+from django.templatetags.static import static
+
 
 def generate_unique_id():
-    # Generates a unique 8-character ID (you can adjust as needed)
+    # Generates a unique 8-character ID
     return str(uuid.uuid4())[:8]
-
-def home(request):
-    doctors = Doctor.objects.all()[:6]  # Fetch at least 6 doctors
-    return render(request, 'home.html', {'doctors': doctors})
 
 class Patient(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='patient')
@@ -27,7 +25,11 @@ class Doctor(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='doctor')
     doctor_id = models.CharField(max_length=100, unique=True, blank=True)
     profile_picture = models.ImageField(upload_to='doctor_profiles/', default='doctor_profiles/default-avatar.png', blank=True)
-
+    specialization = models.CharField(max_length=100, blank=True, default='General Physician')
+    working_hours_start = models.TimeField(default=datetime.time(9, 0))
+    working_hours_end = models.TimeField(default=datetime.time(17, 0))
+    # Comma separated ISO dates (YYYY-MM-DD) on which the doctor is not available
+    unavailable_days = models.TextField(blank=True, default='')
 
     def save(self, *args, **kwargs):
         if not self.doctor_id:
@@ -36,7 +38,53 @@ class Doctor(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - Doctor"
-    
+
+    @property
+    def display_name(self):
+        return self.user.get_full_name() or self.user.username
+
+    @property
+    def availability(self):
+        return f"{self.working_hours_start:%H:%M} - {self.working_hours_end:%H:%M}"
+
+    @property
+    def avatar_url(self):
+        name = self.profile_picture.name if self.profile_picture else ''
+        if name and 'default-avatar' not in name:
+            return self.profile_picture.url
+        return static('icons/default-avatar.png')
+
+    def unavailable_date_set(self):
+        days = set()
+        for chunk in self.unavailable_days.split(','):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            try:
+                days.add(datetime.date.fromisoformat(chunk))
+            except ValueError:
+                continue
+        return days
+
+    def time_slots(self, minutes=30):
+        """All appointment start times for one working day."""
+        slots = []
+        current = datetime.datetime.combine(datetime.date.today(), self.working_hours_start)
+        end = datetime.datetime.combine(datetime.date.today(), self.working_hours_end)
+        step = datetime.timedelta(minutes=minutes)
+        while current + step <= end:
+            slots.append(current.time())
+            current += step
+        return slots
+
+    def free_slots(self, day):
+        """Time slots on `day` that are not already booked."""
+        if day in self.unavailable_date_set():
+            return []
+        booked = set(
+            self.appointments.filter(date=day).exclude(status='Cancelled').values_list('time', flat=True)
+        )
+        return [t for t in self.time_slots() if t not in booked]
 
 
 
@@ -102,3 +150,25 @@ class MedicalHistory(models.Model):
 
     def __str__(self):
         return f"Medical History for {self.patient.user.username}"
+
+
+class Appointment(models.Model):
+    STATUS_CHOICES = [
+        ('Scheduled', 'Scheduled'),
+        ('Completed', 'Completed'),
+        ('Cancelled', 'Cancelled'),
+    ]
+
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='appointments')
+    date = models.DateField()
+    time = models.TimeField()
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Scheduled')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['date', 'time']
+
+    def __str__(self):
+        return f"{self.patient} with {self.doctor} on {self.date} {self.time}"
