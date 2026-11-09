@@ -1,9 +1,10 @@
 {% extends 'accounts/base.html' %}
+{% load static %}
 {% block title %}Register{% endblock %}
 
 {% block fullwidth %}
 <div class="hl-auth">
-    <div class="hl-auth-side" aria-hidden="true"></div>
+    <div class="hl-auth-side" style="background-image: url('{% static 'icons/doctor-visit.png' %}');" aria-hidden="true"></div>
     <div class="hl-auth-form">
         <div class="hl-auth-box">
             <h1>Create your account</h1>

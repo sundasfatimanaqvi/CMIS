@@ -1,9 +1,10 @@
 {% extends 'accounts/base.html' %}
+{% load static %}
 {% block title %}Login{% endblock %}
 
 {% block fullwidth %}
 <div class="hl-auth">
-    <div class="hl-auth-side" aria-hidden="true"></div>
+    <div class="hl-auth-side" style="background-image: url('{% static 'icons/advice.png' %}');" aria-hidden="true"></div>
     <div class="hl-auth-form">
         <div class="hl-auth-box">
             <h1>Welcome back</h1>
