@@ -20,9 +20,9 @@
 
     <section>
         <div class="hl-stats">
-            <div class="hl-stat"><img src="{% static 'graphics/appointment.png' %}" alt=""><div><div class="label">Tomorrow</div><div class="value">{{ next_day_appointments }}</div></div></div>
-            <div class="hl-stat"><img src="{% static 'graphics/doctor-male.png' %}" alt=""><div><div class="label">Today's patients</div><div class="value">{{ today_patients }}</div></div></div>
-            <div class="hl-stat"><img src="{% static 'graphics/checklist.png' %}" alt=""><div><div class="label">Total appointments</div><div class="value">{{ total_appointments }}</div></div></div>
+            <div class="hl-stat"><img src="{% static 'icons/doctor-appointment.png' %}" alt=""><div><div class="label">Tomorrow</div><div class="value">{{ next_day_appointments }}</div></div></div>
+            <div class="hl-stat"><img src="{% static 'icons/doctor.png' %}" alt=""><div><div class="label">Today's patients</div><div class="value">{{ today_patients }}</div></div></div>
+            <div class="hl-stat"><img src="{% static 'icons/medical-records.png' %}" alt=""><div><div class="label">Total appointments</div><div class="value">{{ total_appointments }}</div></div></div>
         </div>
 
         <div class="hl-card">
@@ -61,7 +61,7 @@
                 </table>
             </div>
             {% else %}
-            <div class="hl-empty"><img src="{% static 'graphics/appointment.png' %}" alt=""><p>No upcoming appointments.</p></div>
+            <div class="hl-empty"><img src="{% static 'icons/doctor-appointment.png' %}" alt=""><p>No upcoming appointments.</p></div>
             {% endif %}
         </div>
     </section>

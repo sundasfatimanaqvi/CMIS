@@ -53,7 +53,7 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="hl-empty"><img src="{% static 'graphics/appointment.png' %}" alt=""><p>No upcoming appointments. <a href="{% url 'search_doctor' %}">Book one now</a>.</p></div>
+                <div class="hl-empty"><img src="{% static 'icons/doctor-appointment.png' %}" alt=""><p>No upcoming appointments. <a href="{% url 'search_doctor' %}">Book one now</a>.</p></div>
                 {% endif %}
 
                 {% if past_appointments %}

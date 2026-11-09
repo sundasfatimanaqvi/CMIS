@@ -23,7 +23,7 @@
             <tbody>
             {% for file, title, author, icon_id in icons %}
                 <tr>
-                    <td><img src="{% static 'graphics/' %}{{ file }}" alt="" width="44" height="44"></td>
+                    <td><img src="{% static 'icons/' %}{{ file }}" alt="" width="44" height="44"></td>
                     <td>{{ title }}</td>
                     <td>{{ author }}</td>
                     <td><a href="https://www.flaticon.com/free-icon/icon_{{ icon_id }}" target="_blank" rel="noopener noreferrer">Flaticon</a></td>
