@@ -1,0 +1,232 @@
+{
+  "module": "accounts.chatbot",
+  "mode": "live",
+  "summary": {
+    "all": {
+      "cases": 165,
+      "emergency_recall": {
+        "k": 58,
+        "n": 58,
+        "rate": 1.0,
+        "ci95": [
+          0.9378800031047062,
+          0.9999999999999999
+        ]
+      },
+      "false_alarm_rate": {
+        "k": 0,
+        "n": 107,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.03465846757895952
+        ]
+      },
+      "offtopic_refusal_rate": {
+        "k": 33,
+        "n": 33,
+        "rate": 1.0,
+        "ci95": [
+          0.8957265699643882,
+          1.0
+        ]
+      },
+      "false_refusal_rate": {
+        "k": 0,
+        "n": 64,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.056626022971156334
+        ]
+      },
+      "accuracy": {
+        "k": 165,
+        "n": 165,
+        "rate": 1.0,
+        "ci95": [
+          0.9772473134582946,
+          1.0
+        ]
+      }
+    },
+    "en": {
+      "cases": 84,
+      "emergency_recall": {
+        "k": 24,
+        "n": 24,
+        "rate": 1.0,
+        "ci95": [
+          0.8620194241710247,
+          1.0
+        ]
+      },
+      "false_alarm_rate": {
+        "k": 0,
+        "n": 60,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.06017393047793289
+        ]
+      },
+      "offtopic_refusal_rate": {
+        "k": 23,
+        "n": 23,
+        "rate": 1.0,
+        "ci95": [
+          0.8568788745827374,
+          1.0
+        ]
+      },
+      "false_refusal_rate": {
+        "k": 0,
+        "n": 31,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.11025900073475385
+        ]
+      },
+      "accuracy": {
+        "k": 84,
+        "n": 84,
+        "rate": 1.0,
+        "ci95": [
+          0.9562667346678565,
+          0.9999999999999999
+        ]
+      }
+    },
+    "roman_ur": {
+      "cases": 63,
+      "emergency_recall": {
+        "k": 24,
+        "n": 24,
+        "rate": 1.0,
+        "ci95": [
+          0.8620194241710247,
+          1.0
+        ]
+      },
+      "false_alarm_rate": {
+        "k": 0,
+        "n": 39,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.08966985360023902
+        ]
+      },
+      "offtopic_refusal_rate": {
+        "k": 10,
+        "n": 10,
+        "rate": 1.0,
+        "ci95": [
+          0.7224598312333834,
+          1.0
+        ]
+      },
+      "false_refusal_rate": {
+        "k": 0,
+        "n": 25,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.13319649395317873
+        ]
+      },
+      "accuracy": {
+        "k": 63,
+        "n": 63,
+        "rate": 1.0,
+        "ci95": [
+          0.9425268096514744,
+          0.9999999999999999
+        ]
+      }
+    },
+    "ur": {
+      "cases": 18,
+      "emergency_recall": {
+        "k": 10,
+        "n": 10,
+        "rate": 1.0,
+        "ci95": [
+          0.7224598312333834,
+          1.0
+        ]
+      },
+      "false_alarm_rate": {
+        "k": 0,
+        "n": 8,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.3244156195108769
+        ]
+      },
+      "offtopic_refusal_rate": {
+        "k": 0,
+        "n": 0,
+        "rate": null,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "false_refusal_rate": {
+        "k": 0,
+        "n": 8,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.3244156195108769
+        ]
+      },
+      "accuracy": {
+        "k": 18,
+        "n": 18,
+        "rate": 1.0,
+        "ci95": [
+          0.8241154494176252,
+          1.0
+        ]
+      }
+    }
+  },
+  "by_category": {
+    "emergency": {
+      "correct": 58,
+      "total": 58
+    },
+    "health": {
+      "correct": 61,
+      "total": 61
+    },
+    "health_place_word": {
+      "correct": 3,
+      "total": 3
+    },
+    "off_topic": {
+      "correct": 26,
+      "total": 26
+    },
+    "off_topic_lookalike": {
+      "correct": 4,
+      "total": 4
+    },
+    "false_alarm_trap": {
+      "correct": 3,
+      "total": 3
+    },
+    "greeting": {
+      "correct": 5,
+      "total": 5
+    },
+    "nearby": {
+      "correct": 5,
+      "total": 5
+    }
+  }
+}

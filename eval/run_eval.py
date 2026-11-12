@@ -46,6 +46,67 @@ def wilson(k, n, z=1.96):
     return (max(0.0, centre - half), min(1.0, centre + half))
 
 
+LIVE_PAUSE = 1.0                      # seconds between model calls
+RETRY_STATUSES = {429, 500, 502, 503}
+MAX_RETRIES = 5
+BACKOFF = [2, 4, 8, 16, 32]           # seconds to wait before retry 1..5
+
+
+class LiveStats:
+    def __init__(self):
+        self.reached = 0              # messages that reached the model layer
+        self.ok = 0                   # calls that returned an answer
+        self.retries = 0
+        self.errors = collections.Counter()   # error description -> count
+
+
+def install_live_wrapper(mod, stats):
+    """Wrap mod._call_openai: pace calls, retry transient HTTP errors, stop on insufficient_quota.
+
+    get_reply() swallows exceptions and falls back to built-in text, so a quota stop uses SystemExit
+    (not an Exception subclass) to end the whole run immediately.
+    """
+    import time
+    import urllib.error
+
+    original = mod._call_openai
+    state = {"last": 0.0}
+
+    def wrapped(message):
+        stats.reached += 1
+        for attempt in range(MAX_RETRIES + 1):
+            wait = LIVE_PAUSE - (time.monotonic() - state["last"])
+            if wait > 0:
+                time.sleep(wait)
+            try:
+                result = original(message)
+                state["last"] = time.monotonic()
+                stats.ok += 1
+                return result
+            except urllib.error.HTTPError as exc:
+                state["last"] = time.monotonic()
+                try:
+                    body = exc.read().decode("utf-8", "replace")
+                except Exception:
+                    body = ""
+                if "insufficient_quota" in body:
+                    sys.exit("STOPPED: OpenAI returned insufficient_quota (no credit/quota left on this "
+                             "key). Add billing or credit, then re-run. "
+                             f"{stats.ok} model answers were received before stopping.")
+                if exc.code in RETRY_STATUSES and attempt < MAX_RETRIES:
+                    stats.retries += 1
+                    time.sleep(BACKOFF[attempt])
+                    continue
+                stats.errors[f"HTTP {exc.code}"] += 1
+                raise
+            except Exception as exc:
+                state["last"] = time.monotonic()
+                stats.errors[type(exc).__name__ + ": " + str(exc)[:80]] += 1
+                raise
+
+    mod._call_openai = wrapped
+
+
 def classify(mod, text, urgency):
     if urgency == "emergency":
         return "emergency"
@@ -107,12 +168,14 @@ def main():
 
     mod = importlib.import_module(args.module)
     cases = load_cases(args.testset)
+    live_stats = LiveStats()
 
     if args.live:
         from django.conf import settings
         if not getattr(settings, "OPENAI_API_KEY", ""):
             sys.exit("--live needs OPENAI_API_KEY in your .env / environment")
         ctx = override_settings()
+        install_live_wrapper(mod, live_stats)
     else:
         ctx = override_settings(OPENAI_API_KEY="")
 
@@ -149,6 +212,14 @@ def main():
                 w.writerow([r["id"], r["language"], r["category"], r["expected"], r["predicted"], r["input"]])
 
     print(f"\n{name} ({mode}) - {len(results)} cases\n")
+    if args.live:
+        answered = sum(r["source"] == "ai" for r in results)
+        print(f"Answered by the model: {answered}/{len(results)}")
+        print(f"Messages that reached the model: {live_stats.reached} "
+              f"(successful calls {live_stats.ok}, retries {live_stats.retries})")
+        for err, n in live_stats.errors.most_common():
+            print(f"  error x{n}: {err}")
+        print()
     print("| Metric | All | English | Roman Urdu | Urdu |")
     print("|---|---|---|---|---|")
     for key, label in [("emergency_recall", "Emergency recall"), ("false_alarm_rate", "False-alarm rate"),
