@@ -26,3 +26,9 @@ staticfiles/
 
 
 .vs/
+
+# Local clutter / not for the repo
+desktop.ini
+healio_patch.zip
+Claude outputs/
+*_for_professor.zip

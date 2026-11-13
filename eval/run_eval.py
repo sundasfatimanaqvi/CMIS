@@ -201,9 +201,27 @@ def main():
     outdir = HERE / "results"
     outdir.mkdir(exist_ok=True)
     mode = "live" if args.live else "offline"
+    import datetime
+    import subprocess
+    from django.conf import settings
+    try:
+        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                                cwd=HERE.parent, timeout=10).stdout.strip()
+    except Exception:  # git missing - not fatal
+        commit = ""
+    meta = {  # recorded so a live run can be reproduced / compared later (provider models change)
+        "run_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
+        "git_commit": commit,
+        "testset": pathlib.Path(args.testset).name,
+        "cases": len(results),
+        "answered_by_model": sum(r["source"] == "ai" for r in results),
+        "model": getattr(settings, "OPENAI_MODEL", "gpt-4o-mini") if args.live else None,
+        "temperature": 0.5 if args.live else None,  # hard-coded in accounts/chatbot.py
+    }
     (outdir / f"{name}_{mode}.json").write_text(json.dumps(
-        {"module": args.module, "mode": mode, "summary": summary,
-         "by_category": {k: {"correct": v[0], "total": v[1]} for k, v in by_cat.items()}}, indent=2))
+        {"module": args.module, "mode": mode, "meta": meta, "summary": summary,
+         "by_category": {k: {"correct": v[0], "total": v[1]} for k, v in by_cat.items()}}, indent=2),
+        encoding="utf-8")
     with open(outdir / f"{name}_{mode}_failures.csv", "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
         w.writerow(["id", "language", "category", "expected", "predicted", "input"])

@@ -56,3 +56,38 @@ declined locally and by the model's instructions). Each user is limited to 30 me
 ```bash
 python manage.py test accounts
 ```
+
+> **Research prototype - not medical advice.** The assistant gives general health information only and is
+> not a substitute for a doctor. In an emergency contact local emergency services (Pakistan: Rescue 1122).
+
+## Evaluating the assistant
+
+`eval/` contains a small harness that scores a chatbot module on labelled messages in English, Roman Urdu
+and Urdu (expected outcome: `emergency`, `answer`, `refuse` or `nearby`). Each result file stores the
+model name, temperature, date, git commit and test-set name so runs can be compared later.
+
+```bash
+python -m eval.run_eval --module eval.baseline_chatbot --name baseline                        # offline, free
+python -m eval.run_eval --module accounts.chatbot --name improved                             # offline
+python -m eval.run_eval --module accounts.chatbot --name improved --live                      # real OpenAI call
+python -m eval.run_eval --module accounts.chatbot --name improved_heldout --testset eval/heldout.csv
+python eval/summarize_results.py                                                              # rebuild eval/results/summary.txt
+```
+
+Test sets: `testset.csv` (165, used while developing), `heldout.csv` (39), `selfharm_indirect.csv` (42),
+and `heldout_v2_to_label.csv` (36 new cases, **unlabelled** - for a clinician and a native speaker to label
+and then used once, untouched, for the final numbers). See `eval/results/summary.txt` for current results.
+
+## Limitations (read before citing any number)
+
+- **Labels are developer drafts**, not clinician-confirmed; Urdu / Roman Urdu wording is not native-speaker reviewed.
+- **The main set (165) was used to tune the rules**, so its ~100% is optimistic. Only a held-out set that
+  was never used for tuning is a fair estimate, and the current ones are small (e.g. 3 Urdu emergency cases).
+- **The baseline is an earlier version of this project**, not an independent system.
+- In the improved system most messages are decided by local safety rules; the language model answers only
+  a minority of them, so results describe the rules + model combination, not the model alone.
+- Self-harm detection is deliberately cautious and over-refuses some harmless "live / jeena" questions
+  (e.g. "how long can a person live without food").
+- Live results depend on the provider's model version at the time of the run; repeated runs with identical
+  output are not independent evidence.
+- No real users or clinical setting have been studied; ethics approval would be needed before that.
